@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whitburn Panthers FC - Kit Order Portal 2026</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #020617; /* slate-950 */
+      color: #f1f5f9; /* slate-100 */
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Hide horizontal scrollbar on category tabs while keeping touch scroll */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.18s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-24">
+
+  <!-- TOP STICKY HEADER & PROGRESS BAR -->
+  <header id="app-header" class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-red-900/50 shadow-lg"></header>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast-container" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none hidden"></div>
+
+  <!-- MAIN WIZARD CONTENT CONTAINER -->
+  <main id="app-main" class="max-w-3xl mx-auto px-4 py-6 flex-1 w-full"></main>
+
+  <!-- PRODUCT SIZE & QUANTITY SELECTION MODAL -->
+  <div id="app-modal" class="hidden"></div>
+
+  <!-- STICKY BOTTOM FLOATING FOOTER BAR (STEP 2) -->
+  <div id="app-footer" class="hidden"></div>
+
+  <!-- HIDDEN TEXTAREA FOR IFRAME-SAFE CLIPBOARD COPY -->
+  <textarea id="clipboard-helper" aria-hidden="true" class="fixed -top-96 -left-96 opacity-0 pointer-events-none"></textarea>
+
+  <script>
+    // =========================================================================
+    // 1. INLINE SVG ICONS (Zero external icon dependencies for Google Sites)
+    // =========================================================================
+    const ICONS = {
+      shirt: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>',
+      shoppingBag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+      user: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      userSm: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      shield: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+      arrowRight: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+      chevronRight: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m9 18 6-6-6-6"/></svg>',
+      chevronLeft: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m15 18-6-6 6-6"/></svg>',
+      search: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+      plus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+      minus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M5 12h14"/></svg>',
+      trash: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
+      x: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+      sparkles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+      hash: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>',
+      type: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/></svg>',
+      alertCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+      alertTriangle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+      checkCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+      send: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+      copy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+      check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 6 9 17l-5-5"/></svg>',
+      download: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>'
+    };
+
+    // =========================================================================
+    // 2. CUSTOM COLOUR-MATCHED GARMENT THUMBNAILS FOR EVERY KIT ITEM
+    // =========================================================================
+    let svgClipCounter = 0;
+
+    function getCrestSVG(x = 57, y = 26, scale = 1) {
+      return `
+        <g transform="translate(${x}, ${y}) scale(${scale})">
+          <path d="M0,0 H12 V7 C12,11 6,14 6,14 C6,14 0,11 0,7 Z" fill="#ffffff" stroke="#1e293b" stroke-width="0.8" />
+          <rect x="1" y="1" width="10" height="4" fill="#18181b" />
+          <rect x="2" y="6" width="2" height="5" fill="#dc2626" />
+          <rect x="5" y="6" width="2" height="6" fill="#dc2626" />
+          <rect x="8" y="6" width="2" height="5" fill="#dc2626" />
+        </g>
+      `;
+    }
+
+    function getKitThumbnailHTML(sku, name, sizeClass = 'w-16 h-16') {
+      let innerSVG = '';
+      switch (sku) {
+        case 'AV-1725PI-657': {
+          const clipId = `homeShirtClip_${++svgClipCounter}`;
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <defs>
+                <clipPath id="${clipId}">
+                  <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" />
+                </clipPath>
+              </defs>
+              <g clip-path="url(#${clipId})">
+                <rect x="8" y="12" width="84" height="78" fill="#ffffff" />
+                <rect x="8" y="12" width="20" height="78" fill="#dc2626" />
+                <rect x="72" y="12" width="20" height="78" fill="#dc2626" />
+                <rect x="33" y="12" width="6.5" height="78" fill="#dc2626" />
+                <rect x="46.75" y="12" width="6.5" height="78" fill="#dc2626" />
+                <rect x="60.5" y="12" width="6.5" height="78" fill="#dc2626" />
+                <path d="M28,68 Q42,60 52,72 L46,88 L28,88 Z" fill="#18181b" opacity="0.28" />
+                <rect x="8" y="39" width="14" height="4" transform="rotate(38 15 41)" fill="#ffffff" />
+                <rect x="78" y="39" width="14" height="4" transform="rotate(-38 85 41)" fill="#ffffff" />
+              </g>
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+              <path d="M39,14 Q50,22 61,14" fill="none" stroke="#ffffff" stroke-width="2.2" />
+              <polygon points="36,29 41,29 38.5,24" fill="#18181b" />
+              ${getCrestSVG(56, 24, 0.95)}
+            </svg>`;
+          break;
+        }
+        case 'AV-2024FC-010':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M24,22 H76 L82,76 H53 L50,52 L47,76 H18 Z" fill="#18181b" stroke="#64748b" stroke-width="1.8" />
+              <line x1="23" y1="28" x2="77" y2="28" stroke="#334155" stroke-width="1.5" />
+              <polygon points="67,69 73,69 70,63" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-3014TK-657':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M32,16 H46 V64 L32,76 Q24,80 22,74 Q20,69 28,63 L32,58 Z" fill="#b91c1c" stroke="#f87171" stroke-width="1" />
+              <path d="M54,18 H68 V66 L54,78 Q46,82 44,76 Q42,71 50,65 L54,60 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="1.2" />
+              <rect x="54" y="18" width="14" height="8" fill="#b91c1c" />
+              <polygon points="58,52 63,52 60.5,47" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-1426EP-463':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" fill="#0284c7" stroke="#7dd3fc" stroke-width="1.5" />
+              <path d="M28,48 L31,48 L31,84 L28,84 Z M69,48 L72,48 L72,84 L69,84 Z" fill="#ffffff" opacity="0.85" />
+              <path d="M28,68 Q42,60 52,72 L46,88 L28,88 Z" fill="#0369a1" opacity="0.65" />
+              <polygon points="36,29 41,29 38.5,24" fill="#ffffff" />
+              ${getCrestSVG(56, 24, 0.95)}
+            </svg>`;
+          break;
+        case 'AV-2024-FC-412':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M24,22 H76 L82,76 H53 L50,52 L47,76 H18 Z" fill="#0ea5e9" stroke="#bae6fd" stroke-width="1.5" />
+              <line x1="23" y1="28" x2="77" y2="28" stroke="#0284c7" stroke-width="1.5" />
+              <polygon points="67,69 73,69 70,63" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-3014TK-412':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M32,16 H46 V64 L32,76 Q24,80 22,74 Q20,69 28,63 L32,58 Z" fill="#0284c7" />
+              <path d="M54,18 H68 V66 L54,78 Q46,82 44,76 Q42,71 50,65 L54,60 Z" fill="#38bdf8" stroke="#bae6fd" stroke-width="1.2" />
+              <polygon points="58,52 63,52 60.5,47" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-1622ID-412':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" fill="#38bdf8" stroke="#e0f2fe" stroke-width="1.5" />
+              <path d="M39,14 Q50,22 61,14" fill="none" stroke="#ffffff" stroke-width="2.5" />
+              <polygon points="36,29 41,29 38.5,24" fill="#ffffff" />
+              ${getCrestSVG(56, 24, 0.95)}
+            </svg>`;
+          break;
+        case 'AV-1925ID-700':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L90,74 L80,77 L70,40 L70,88 L30,88 L30,40 L20,77 L10,74 Z" fill="#bef264" stroke="#ecfccb" stroke-width="1.5" />
+              <path d="M33,22 L45,28 L38,44 L55,36 L64,52 L42,58 L32,45 Z" fill="#ea580c" opacity="0.85" />
+              <rect x="33" y="66" width="13" height="16" rx="3" fill="#ea580c" opacity="0.85" />
+              <rect x="54" y="66" width="13" height="16" rx="3" fill="#ea580c" opacity="0.85" />
+              <polygon points="36,29 41,29 38.5,24" fill="#dc2626" />
+              ${getCrestSVG(55, 24, 0.9)}
+            </svg>`;
+          break;
+        case 'AV-2225-PI-700':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M24,22 H76 L82,76 H53 L50,52 L47,76 H18 Z" fill="#bef264" stroke="#ecfccb" stroke-width="1.5" />
+              <polygon points="67,69 73,69 70,63" fill="#dc2626" />
+            </svg>`;
+          break;
+        case 'AV-3225-PI-700':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M32,16 H46 V64 L32,76 Q24,80 22,74 Q20,69 28,63 L32,58 Z" fill="#a3e635" />
+              <path d="M54,18 H68 V66 L54,78 Q46,82 44,76 Q42,71 50,65 L54,60 Z" fill="#bef264" stroke="#ecfccb" stroke-width="1.2" />
+              <line x1="67" y1="26" x2="67" y2="54" stroke="#dc2626" stroke-width="2.5" />
+              <polygon points="58,52 63,52 60.5,47" fill="#dc2626" />
+            </svg>`;
+          break;
+        case 'AV-1925PI-550':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L90,74 L80,77 L70,40 L70,88 L30,88 L30,40 L20,77 L10,74 Z" fill="#d946ef" stroke="#f5d0fe" stroke-width="1.5" />
+              <path d="M33,22 L45,28 L38,44 L55,36 L64,52 L42,58 L32,45 Z" fill="#86198f" opacity="0.8" />
+              <rect x="33" y="66" width="13" height="16" rx="3" fill="#86198f" opacity="0.8" />
+              <rect x="54" y="66" width="13" height="16" rx="3" fill="#86198f" opacity="0.8" />
+              <polygon points="36,29 41,29 38.5,24" fill="#ffffff" />
+              ${getCrestSVG(55, 24, 0.9)}
+            </svg>`;
+          break;
+        case 'AV-2225PI-550':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M24,22 H76 L82,76 H53 L50,52 L47,76 H18 Z" fill="#d946ef" stroke="#f5d0fe" stroke-width="1.5" />
+              <polygon points="67,69 73,69 70,63" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-3225PI-550':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M32,16 H46 V64 L32,76 Q24,80 22,74 Q20,69 28,63 L32,58 Z" fill="#c026d3" />
+              <path d="M54,18 H68 V66 L54,78 Q46,82 44,76 Q42,71 50,65 L54,60 Z" fill="#d946ef" stroke="#f5d0fe" stroke-width="1.2" />
+              <polygon points="58,52 63,52 60.5,47" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-4626EP-657':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L41,12 H59 L74,18 L90,74 L80,77 L70,40 L70,88 L30,88 L30,40 L20,77 L10,74 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              <rect x="30" y="45" width="40" height="4.5" fill="#ffffff" />
+              <line x1="17" y1="45" x2="29" y2="47" stroke="#ffffff" stroke-width="4" />
+              <line x1="71" y1="47" x2="83" y2="45" stroke="#ffffff" stroke-width="4" />
+              <line x1="50" y1="13" x2="50" y2="38" stroke="#ffffff" stroke-width="2.2" />
+              <polygon points="36,30 41,30 38.5,25" fill="#ffffff" />
+              ${getCrestSVG(55, 24, 0.9)}
+            </svg>`;
+          break;
+        case 'AV-7625-EP-010':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M36,16 Q50,6 64,16 L60,22 H40 Z" fill="#09090b" stroke="#52525b" stroke-width="1.2" />
+              <path d="M24,20 L38,16 H62 L76,20 L90,72 L79,75 L70,42 L70,92 H30 L30,42 L21,75 L10,72 Z" fill="#18181b" stroke="#71717a" stroke-width="1.5" />
+              <line x1="30" y1="42" x2="70" y2="42" stroke="#3f3f46" stroke-width="1.5" />
+              <line x1="30" y1="56" x2="70" y2="56" stroke="#3f3f46" stroke-width="1.5" />
+              <line x1="30" y1="70" x2="70" y2="70" stroke="#3f3f46" stroke-width="1.5" />
+              <line x1="30" y1="82" x2="70" y2="82" stroke="#3f3f46" stroke-width="1.5" />
+              <line x1="50" y1="18" x2="50" y2="92" stroke="#52525b" stroke-width="1.5" />
+              <polygon points="35,31 40,31 37.5,26" fill="#ffffff" />
+              ${getCrestSVG(55, 25, 0.85)}
+            </svg>`;
+          break;
+        case 'AV7024EV-010':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L40,12 H60 L74,18 L90,74 L80,77 L70,40 L70,88 L30,88 L30,40 L20,77 L10,74 Z" fill="#18181b" stroke="#71717a" stroke-width="1.5" />
+              <line x1="50" y1="13" x2="50" y2="88" stroke="#52525b" stroke-width="1.8" />
+              <line x1="25" y1="20" x2="15" y2="46" stroke="#94a3b8" stroke-width="2.5" />
+              <line x1="75" y1="20" x2="85" y2="46" stroke="#94a3b8" stroke-width="2.5" />
+              <polygon points="36,30 41,30 38.5,25" fill="#ffffff" />
+              ${getCrestSVG(55, 24, 0.9)}
+            </svg>`;
+          break;
+        case 'AV-4826EP-010':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M30,14 H70 L75,88 H58 L50,46 L42,88 H25 Z" fill="#18181b" stroke="#71717a" stroke-width="1.5" />
+              <line x1="30" y1="21" x2="70" y2="21" stroke="#3f3f46" stroke-width="1.5" />
+              <polygon points="62,36 67,36 64.5,31" fill="#ffffff" />
+            </svg>`;
+          break;
+        case 'AV-8522FC-657':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M36,16 Q50,6 64,16 L60,22 H40 Z" fill="#b91c1c" stroke="#fca5a5" stroke-width="1.2" />
+              <path d="M26,20 L40,15 H60 L74,20 L90,74 L80,77 L70,40 L70,88 L30,88 L30,40 L20,77 L10,74 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              <path d="M37,66 H63 L67,84 H33 Z" fill="#b91c1c" stroke="#f87171" stroke-width="1" />
+              <polygon points="36,31 41,31 38.5,26" fill="#ffffff" />
+              ${getCrestSVG(55, 25, 0.9)}
+            </svg>`;
+          break;
+        case 'AV-1824EV-657':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              <line x1="26" y1="19" x2="15" y2="33" stroke="#ffffff" stroke-width="2" />
+              <line x1="74" y1="19" x2="85" y2="33" stroke="#ffffff" stroke-width="2" />
+              <polygon points="36,30 41,30 38.5,25" fill="#ffffff" />
+              ${getCrestSVG(56, 24, 0.95)}
+            </svg>`;
+          break;
+        case 'BC045':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M22,62 C22,30 34,20 50,20 C66,20 78,30 78,62 Z" fill="#b91c1c" stroke="#fca5a5" stroke-width="1.5" />
+              <rect x="19" y="58" width="62" height="20" rx="5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              ${getCrestSVG(44, 61, 0.95)}
+            </svg>`;
+          break;
+        case 'BC450':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <circle cx="50" cy="18" r="10" fill="#ffffff" stroke="#dc2626" stroke-width="2" stroke-dasharray="3 2" />
+              <circle cx="50" cy="18" r="5" fill="#dc2626" />
+              <path d="M22,64 C22,34 34,25 50,25 C66,25 78,34 78,64 Z" fill="#b91c1c" stroke="#fca5a5" stroke-width="1.5" />
+              <rect x="19" y="60" width="62" height="20" rx="5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              ${getCrestSVG(44, 63, 0.95)}
+            </svg>`;
+          break;
+        case 'BC479':
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <rect x="28" y="22" width="17" height="62" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2" />
+              <rect x="28" y="36" width="17" height="12" fill="#dc2626" />
+              <rect x="28" y="60" width="17" height="12" fill="#dc2626" />
+              <rect x="55" y="22" width="17" height="62" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2" />
+              <rect x="55" y="32" width="17" height="12" fill="#dc2626" />
+              <rect x="55" y="54" width="17" height="10" fill="#dc2626" />
+              <rect x="24" y="14" width="52" height="15" rx="6" fill="#dc2626" stroke="#fca5a5" stroke-width="1.2" />
+              <line x1="31" y1="84" x2="31" y2="91" stroke="#dc2626" stroke-width="2" />
+              <line x1="36.5" y1="84" x2="36.5" y2="91" stroke="#dc2626" stroke-width="2" />
+              <line x1="42" y1="84" x2="42" y2="91" stroke="#dc2626" stroke-width="2" />
+              <line x1="58" y1="84" x2="58" y2="91" stroke="#dc2626" stroke-width="2" />
+              <line x1="63.5" y1="84" x2="63.5" y2="91" stroke="#dc2626" stroke-width="2" />
+              <line x1="69" y1="84" x2="69" y2="91" stroke="#dc2626" stroke-width="2" />
+              ${getCrestSVG(58.5, 67, 0.85)}
+            </svg>`;
+          break;
+        default:
+          innerSVG = `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <path d="M26,18 L39,14 Q50,20 61,14 L74,18 L92,34 L82,46 L72,38 L72,88 L28,88 L28,38 L18,46 L8,34 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5" />
+              ${getCrestSVG(56, 24, 0.95)}
+            </svg>`;
+      }
+
+      return `
+        <div title="${escapeHtml(name)}" class="${sizeClass} rounded-xl border border-slate-700/90 bg-slate-950 p-1.5 flex items-center justify-center flex-shrink-0 shadow-inner">
+          ${innerSVG}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 3. COMPLETE PRODUCT CATALOG DATA
+    // =========================================================================
+    const PRODUCTS = [
+      // MATCH KIT
+      {
+        id: 'AV-1725PI-657',
+        name: 'AVEC RED/WHITE STRIPE HOME TOP',
+        sku: 'AV-1725PI-657',
+        category: 'Match Kit',
+        requiresNumber: true,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge & Back Number + £3 Sponsor',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 21.50 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 21.50 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 21.50 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 23.00 },
+          { code: 'SMALL', label: 'Small Adult', price: 23.75 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 23.75 },
+          { code: 'LARGE', label: 'Large Adult', price: 23.75 },
+          { code: 'XL', label: 'XL Adult', price: 23.75 },
+          { code: 'XXL', label: 'XXL Adult', price: 23.75 }
+        ]
+      },
+      {
+        id: 'AV-2024FC-010',
+        name: 'AVEC BLACK HOME SHORTS',
+        sku: 'AV-2024FC-010',
+        category: 'Match Kit',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 6.00 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 6.00 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 6.00 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 7.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 7.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 7.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 7.95 },
+          { code: 'XL', label: 'XL Adult', price: 7.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 7.95 }
+        ]
+      },
+      {
+        id: 'AV-3014TK-657',
+        name: 'AVEC RED HOME SOCKS',
+        sku: 'AV-3014TK-657',
+        category: 'Match Kit',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: '12-2', label: 'Junior (12-2)', price: 4.80 },
+          { code: '3-6', label: 'Medium (3-6)', price: 5.50 },
+          { code: '7-11', label: 'Adult (7-11)', price: 5.75 }
+        ]
+      },
+      {
+        id: 'AV-1426EP-463',
+        name: 'AVEC EVOLVE PRO AWAY TOP',
+        sku: 'AV-1426EP-463',
+        category: 'Match Kit',
+        requiresNumber: true,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge & Back Number + £3 Sponsor',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 19.00 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 19.00 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 19.00 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 21.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 21.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 21.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 21.95 },
+          { code: 'XL', label: 'XL Adult', price: 21.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 21.95 }
+        ]
+      },
+      {
+        id: 'AV-2024-FC-412',
+        name: 'AVEC LIGHT BLUE AWAY SHORTS',
+        sku: 'AV-2024-FC-412',
+        category: 'Match Kit',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 6.00 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 6.00 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 6.00 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 7.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 7.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 7.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 7.95 },
+          { code: 'XL', label: 'XL Adult', price: 7.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 7.95 }
+        ]
+      },
+      {
+        id: 'AV-3014TK-412',
+        name: 'AVEC LIGHT BLUE AWAY SOCKS',
+        sku: 'AV-3014TK-412',
+        category: 'Match Kit',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: '12-2', label: 'Junior (12-2)', price: 4.80 },
+          { code: '3-6', label: 'Medium (3-6)', price: 5.50 },
+          { code: '7-11', label: 'Adult (7-11)', price: 5.70 }
+        ]
+      },
+      {
+        id: 'AV-1622ID-412',
+        name: 'TEAM ID PRO JERSEY - SKY',
+        sku: 'AV-1622ID-412',
+        category: 'Match Kit',
+        requiresNumber: true,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 11.20 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 11.20 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 11.20 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 11.20 },
+          { code: 'SMALL', label: 'Small Adult', price: 13.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 13.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 13.95 },
+          { code: 'XL', label: 'XL Adult', price: 13.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 13.95 }
+        ]
+      },
+
+      // GOALKEEPER KIT
+      {
+        id: 'AV-1925ID-700',
+        name: 'AVEC NEON YELLOW GK TOP',
+        sku: 'AV-1925ID-700',
+        category: 'Goalkeeper',
+        requiresNumber: true,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge & Back Number + £3 Sponsor',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 21.75 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 21.75 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 21.75 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 24.95 },
+          { code: 'SMALL', label: 'Small Adult', price: 25.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 25.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 25.95 },
+          { code: 'XL', label: 'XL Adult', price: 25.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 25.95 }
+        ]
+      },
+      {
+        id: 'AV-2225-PI-700',
+        name: 'AVEC NEON YELLOW GK SHORTS',
+        sku: 'AV-2225-PI-700',
+        category: 'Goalkeeper',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 6.75 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 6.75 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 6.75 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 8.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 8.75 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 8.75 },
+          { code: 'LARGE', label: 'Large Adult', price: 8.75 },
+          { code: 'XL', label: 'XL Adult', price: 8.75 },
+          { code: 'XXL', label: 'XXL Adult', price: 8.75 }
+        ]
+      },
+      {
+        id: 'AV-3225-PI-700',
+        name: 'AVEC NEON YELLOW SOCKS',
+        sku: 'AV-3225-PI-700',
+        category: 'Goalkeeper',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: '12-2', label: 'Junior (12-2)', price: 5.25 },
+          { code: '3-6', label: 'Medium (3-6)', price: 6.25 },
+          { code: '7-11', label: 'Adult (7-11)', price: 6.50 }
+        ]
+      },
+      {
+        id: 'AV-1925PI-550',
+        name: 'AVEC MAGENTA GK TOP',
+        sku: 'AV-1925PI-550',
+        category: 'Goalkeeper',
+        requiresNumber: true,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge & Back Number + £3 Sponsor',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 21.75 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 21.75 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 21.75 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 24.95 },
+          { code: 'SMALL', label: 'Small Adult', price: 25.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 25.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 25.95 },
+          { code: 'XL', label: 'XL Adult', price: 25.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 25.95 }
+        ]
+      },
+      {
+        id: 'AV-2225PI-550',
+        name: 'AVEC MAGENTA GK SHORTS',
+        sku: 'AV-2225PI-550',
+        category: 'Goalkeeper',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 6.75 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 6.75 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 6.75 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 8.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 8.75 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 8.75 },
+          { code: 'LARGE', label: 'Large Adult', price: 8.75 },
+          { code: 'XL', label: 'XL Adult', price: 8.75 },
+          { code: 'XXL', label: 'XXL Adult', price: 8.75 }
+        ]
+      },
+      {
+        id: 'AV-3225PI-550',
+        name: 'AVEC MAGENTA SOCKS',
+        sku: 'AV-3225PI-550',
+        category: 'Goalkeeper',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: '12-2', label: 'Junior (12-2)', price: 5.25 },
+          { code: '3-6', label: 'Medium (3-6)', price: 6.25 },
+          { code: '7-11', label: 'Adult (7-11)', price: 6.50 }
+        ]
+      },
+
+      // TRAINING & OUTERWEAR
+      {
+        id: 'AV-4626EP-657',
+        name: 'AVEC EP RED 1/4 ZIP',
+        sku: 'AV-4626EP-657',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: true,
+        badgeText: 'Includes Embroidered Badge + Initials',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 23.50 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 23.50 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 23.50 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 26.75 },
+          { code: 'SMALL', label: 'Small Adult', price: 28.50 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 28.50 },
+          { code: 'LARGE', label: 'Large Adult', price: 28.50 },
+          { code: 'XL', label: 'XL Adult', price: 28.50 },
+          { code: 'XXL', label: 'XXL Adult', price: 28.50 }
+        ]
+      },
+      {
+        id: 'AV-7625-EP-010',
+        name: 'AVEC EP PADDED BENCH JACKET',
+        sku: 'AV-7625-EP-010',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: true,
+        badgeText: 'Includes Embroidered Badge + Initials',
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 45.00 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 45.00 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 45.00 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 53.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 55.00 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 55.00 },
+          { code: 'LARGE', label: 'Large Adult', price: 55.00 },
+          { code: 'XL', label: 'XL Adult', price: 55.00 },
+          { code: 'XXL', label: 'XXL Adult', price: 55.00 }
+        ]
+      },
+      {
+        id: 'AV7024EV-010',
+        name: 'EVOLVE RAIN JACKET',
+        sku: 'AV7024EV-010',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: true,
+        badgeText: 'Includes Embroidered Badge + Initials',
+        sizes: [
+          { code: 'XSB', label: 'Extra Small Boy (XSB)', price: 26.50 },
+          { code: 'SB', label: 'Small Boy (SB)', price: 26.50 },
+          { code: 'MB', label: 'Medium Boy (MB)', price: 26.50 },
+          { code: 'LB', label: 'Large Boy (LB)', price: 26.50 },
+          { code: 'XLB', label: 'XL Boy (XLB)', price: 31.50 },
+          { code: 'SMALL', label: 'Small Adult', price: 33.50 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 33.50 },
+          { code: 'LARGE', label: 'Large Adult', price: 33.50 },
+          { code: 'XL', label: 'XL Adult', price: 33.50 },
+          { code: '2XL', label: '2XL Adult', price: 33.50 }
+        ]
+      },
+      {
+        id: 'AV-4826EP-010',
+        name: 'AVEC EVOLVE PRO TECH PANT',
+        sku: 'AV-4826EP-010',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 19.00 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 19.00 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 19.00 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 23.00 },
+          { code: 'SMALL', label: 'Small Adult', price: 24.00 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 24.00 },
+          { code: 'LARGE', label: 'Large Adult', price: 24.00 },
+          { code: 'XL', label: 'XL Adult', price: 24.00 },
+          { code: 'XXL', label: 'XXL Adult', price: 24.00 }
+        ]
+      },
+      {
+        id: 'AV-8522FC-657',
+        name: 'FOCUS OTH TECH HOODIE - RED',
+        sku: 'AV-8522FC-657',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 8.95 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 8.95 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 8.95 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 8.95 },
+          { code: 'SMALL', label: 'Small Adult', price: 11.95 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 11.95 },
+          { code: 'LARGE', label: 'Large Adult', price: 11.95 },
+          { code: 'XL', label: 'XL Adult', price: 11.95 },
+          { code: 'XXL', label: 'XXL Adult', price: 11.95 }
+        ]
+      },
+      {
+        id: 'AV-1824EV-657',
+        name: 'EVOLVE T-SHIRT - RED',
+        sku: 'AV-1824EV-657',
+        category: 'Training & Outerwear',
+        requiresNumber: false,
+        requiresInitials: false,
+        sizes: [
+          { code: 'SJ', label: 'Small Junior (SJ)', price: 9.65 },
+          { code: 'MJ', label: 'Medium Junior (MJ)', price: 9.65 },
+          { code: 'LJ', label: 'Large Junior (LJ)', price: 9.65 },
+          { code: 'XLJ', label: 'XL Junior (XLJ)', price: 9.65 },
+          { code: 'SMALL', label: 'Small Adult', price: 9.65 },
+          { code: 'MEDIUM', label: 'Medium Adult', price: 9.65 },
+          { code: 'LARGE', label: 'Large Adult', price: 9.65 },
+          { code: 'XL', label: 'XL Adult', price: 9.65 },
+          { code: 'XXL', label: 'XXL Adult', price: 9.65 }
+        ]
+      },
+
+      // ACCESSORIES
+      {
+        id: 'BC045',
+        name: 'RED BEANIE',
+        sku: 'BC045',
+        category: 'Accessories',
+        requiresNumber: false,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge',
+        sizes: [
+          { code: 'ONE SIZE', label: 'One Size', price: 5.50 }
+        ]
+      },
+      {
+        id: 'BC450',
+        name: 'RED/WHITE BOBBLE HAT',
+        sku: 'BC450',
+        category: 'Accessories',
+        requiresNumber: false,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge',
+        sizes: [
+          { code: 'ONE SIZE', label: 'One Size', price: 6.50 }
+        ]
+      },
+      {
+        id: 'BC479',
+        name: 'RED/WHITE SCARF',
+        sku: 'BC479',
+        category: 'Accessories',
+        requiresNumber: false,
+        requiresInitials: false,
+        badgeText: 'Includes Embroidered Badge',
+        sizes: [
+          { code: 'ONE SIZE', label: 'One Size', price: 9.50 }
+        ]
+      }
+    ];
+
+    const CATEGORIES = ['All', 'Match Kit', 'Goalkeeper', 'Training & Outerwear', 'Accessories'];
+
+    // =========================================================================
+    // 4. APPLICATION STATE
+    // =========================================================================
+    const state = {
+      currentStep: 1,
+      coachDetails: {
+        name: '',
+        teamName: ''
+      },
+      cart: [],
+      selectedCategory: 'All',
+      searchQuery: '',
+      activeProduct: null,
+      selectedSize: null,
+      quantity: 1,
+      personalisationValues: {},
+      unitValidationWarnings: {},
+      copiedSuccess: false
+    };
+
+    let toastTimeout = null;
+
+    // Escape HTML helper for safe rendering
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Toast notification banner (never uses alert)
+    function showToast(msg) {
+      const container = document.getElementById('toast-container');
+      container.innerHTML = `
+        <div class="bg-red-600 text-white px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-red-400 animate-bounce whitespace-nowrap">
+          ${ICONS.sparkles}
+          <span>${escapeHtml(msg)}</span>
+        </div>
+      `;
+      container.classList.remove('hidden');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        container.classList.add('hidden');
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 5. DERIVED DATA & VALIDATION CALCULATIONS
+    // =========================================================================
+    function getTotalItemsCount() {
+      return state.cart.reduce((sum, item) => sum + item.quantity, 0);
+    }
+
+    function getGrandTotal() {
+      return state.cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+    }
+
+    function getFilteredProducts() {
+      const q = state.searchQuery.toLowerCase();
+      return PRODUCTS.filter(product => {
+        const matchesCategory = state.selectedCategory === 'All' || product.category === state.selectedCategory;
+        const matchesSearch = product.name.toLowerCase().includes(q) || product.sku.toLowerCase().includes(q);
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function getExpandedPersonalisationUnits() {
+      const units = [];
+      state.cart.forEach(item => {
+        if (item.requiresNumber || item.requiresInitials) {
+          for (let i = 0; i < item.quantity; i++) {
+            units.push({
+              unitKey: `${item.cartItemId}_unit_${i}`,
+              cartItemId: item.cartItemId,
+              productId: item.productId,
+              name: item.name,
+              sku: item.sku,
+              sizeLabel: item.sizeLabel,
+              unitNumber: i + 1,
+              totalQuantity: item.quantity,
+              requiresNumber: item.requiresNumber,
+              requiresInitials: item.requiresInitials
+            });
+          }
+        }
+      });
+      return units;
+    }
+
+    function analyzePersonalisation(units) {
+      const groupedBySku = {};
+      units.forEach(unit => {
+        if (unit.requiresNumber) {
+          if (!groupedBySku[unit.sku]) groupedBySku[unit.sku] = [];
+          groupedBySku[unit.sku].push(unit);
+        }
+      });
+
+      const analysis = {};
+      Object.keys(groupedBySku).forEach(sku => {
+        const skuUnits = groupedBySku[sku];
+        const counts = {};
+        const assigned = [];
+
+        skuUnits.forEach(u => {
+          const val = (state.personalisationValues[u.unitKey] || '').trim();
+          if (val && !isNaN(val)) {
+            const num = parseInt(val, 10);
+            assigned.push(num);
+            counts[num] = (counts[num] || 0) + 1;
+          }
+        });
+
+        const duplicates = new Set(
+          Object.keys(counts)
+            .filter(numStr => counts[numStr] > 1)
+            .map(numStr => parseInt(numStr, 10))
+        );
+
+        let nextFree = 1;
+        while (assigned.includes(nextFree) && nextFree <= 99) {
+          nextFree++;
+        }
+
+        analysis[sku] = {
+          assignedList: Array.from(new Set(assigned)).sort((a, b) => a - b),
+          duplicates,
+          nextFree: nextFree <= 99 ? nextFree : null
+        };
+      });
+
+      let duplicateCount = 0;
+      units.forEach(unit => {
+        if (unit.requiresNumber) {
+          const val = (state.personalisationValues[unit.unitKey] || '').trim();
+          if (val) {
+            const num = parseInt(val, 10);
+            const skuInfo = analysis[unit.sku];
+            if (skuInfo && skuInfo.duplicates.has(num)) {
+              duplicateCount++;
+            }
+          }
+        }
+      });
+
+      return {
+        groupedBySku,
+        analysis,
+        hasErrors: duplicateCount > 0,
+        duplicateCount
+      };
+    }
+
+    function getFinalizedOrderItems() {
+      return state.cart.map(item => {
+        const itemPersonalisations = [];
+        if (item.requiresNumber || item.requiresInitials) {
+          for (let i = 0; i < item.quantity; i++) {
+            const key = `${item.cartItemId}_unit_${i}`;
+            const val = state.personalisationValues[key] || '';
+            if (val.trim()) {
+              itemPersonalisations.push(val.trim());
+            }
+          }
+        }
+        return {
+          ...item,
+          lineTotal: item.unitPrice * item.quantity,
+          personalisations: itemPersonalisations
+        };
+      });
+    }
+
+    function getFormattedOrderText() {
+      const orderDate = new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+      const finalizedItems = getFinalizedOrderItems();
+      const totalItemsCount = getTotalItemsCount();
+      const grandTotal = getGrandTotal();
+
+      let text = `WHITBURN PANTHERS FC - KIT ORDER 2026\n`;
+      text += `=====================================\n`;
+      text += `Date: ${orderDate}\n`;
+      text += `Coach Name: ${state.coachDetails.name || 'N/A'}\n`;
+      text += `Team / Age Group: ${state.coachDetails.teamName || 'N/A'}\n\n`;
+      text += `ITEMIZED ORDER SUMMARY (${totalItemsCount} Total Items):\n`;
+      text += `-------------------------------------\n`;
+
+      finalizedItems.forEach((item, idx) => {
+        text += `${idx + 1}. ${item.name} (${item.sku})\n`;
+        text += `   Size: ${item.sizeLabel} | Qty: ${item.quantity} x £${item.unitPrice.toFixed(2)} = £${item.lineTotal.toFixed(2)}\n`;
+
+        if (item.requiresNumber && item.personalisations.length > 0) {
+          text += `   Squad Numbers: ${item.personalisations.map(n => `#${n}`).join(', ')}\n`;
+        } else if (item.requiresNumber) {
+          text += `   Squad Numbers: None specified\n`;
+        }
+
+        if (item.requiresInitials && item.personalisations.length > 0) {
+          text += `   Initials: ${item.personalisations.join(', ')}\n`;
+        } else if (item.requiresInitials) {
+          text += `   Initials: None specified\n`;
+        }
+
+        text += `\n`;
+      });
+
+      text += `-------------------------------------\n`;
+      text += `GRAND TOTAL: £${grandTotal.toFixed(2)}\n`;
+      text += `=====================================\n`;
+      text += `Generated via Whitburn Panthers Kit Order Wizard`;
+
+      return text;
+    }
+
+    // =========================================================================
+    // 6. EVENT HANDLERS & ACTIONS
+    // =========================================================================
+    function goToStep(step) {
+      if (step === 2 && (!state.coachDetails.name.trim() || !state.coachDetails.teamName.trim())) {
+        showToast('Please enter Coach Name & Team Name first');
+        return;
+      }
+      if (step > 2 && state.cart.length === 0) {
+        showToast('Please select kit items first');
+        return;
+      }
+      if (step === 4) {
+        const units = getExpandedPersonalisationUnits();
+        const { hasErrors } = analyzePersonalisation(units);
+        if (hasErrors) {
+          showToast('Please resolve duplicate squad numbers first');
+          return;
+        }
+      }
+      state.currentStep = step;
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openProductModal(productId) {
+      const product = PRODUCTS.find(p => p.id === productId);
+      if (!product) return;
+      state.activeProduct = product;
+      state.selectedSize = product.sizes[0];
+      state.quantity = 1;
+      renderModal();
+    }
+
+    function closeProductModal() {
+      state.activeProduct = null;
+      renderModal();
+    }
+
+    function selectModalSize(sizeCode) {
+      if (!state.activeProduct) return;
+      const size = state.activeProduct.sizes.find(s => s.code === sizeCode);
+      if (size) {
+        state.selectedSize = size;
+        renderModal();
+      }
+    }
+
+    function updateModalQuantity(delta) {
+      state.quantity = Math.max(1, state.quantity + delta);
+      renderModal();
+    }
+
+    function addToCartFromModal() {
+      if (!state.activeProduct || !state.selectedSize) return;
+      const existingIndex = state.cart.findIndex(
+        item => item.productId === state.activeProduct.id && item.sizeCode === state.selectedSize.code
+      );
+
+      if (existingIndex > -1) {
+        state.cart[existingIndex].quantity += state.quantity;
+      } else {
+        state.cart.push({
+          cartItemId: `${state.activeProduct.id}_${state.selectedSize.code}_${Date.now()}`,
+          productId: state.activeProduct.id,
+          name: state.activeProduct.name,
+          sku: state.activeProduct.sku,
+          category: state.activeProduct.category,
+          sizeCode: state.selectedSize.code,
+          sizeLabel: state.selectedSize.label,
+          unitPrice: state.selectedSize.price,
+          quantity: state.quantity,
+          requiresNumber: state.activeProduct.requiresNumber,
+          requiresInitials: state.activeProduct.requiresInitials
+        });
+      }
+
+      const addedName = state.activeProduct.name;
+      const addedSize = state.selectedSize.code;
+      state.activeProduct = null;
+      renderAll();
+      showToast(`Added ${addedName} (${addedSize}) to order`);
+    }
+
+    function updateCartQuantity(cartItemId, delta) {
+      state.cart = state.cart
+        .map(item => {
+          if (item.cartItemId === cartItemId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean);
+      renderHeader();
+      renderStep2Lists();
+      renderFooter();
+    }
+
+    function removeCartItem(cartItemId) {
+      state.cart = state.cart.filter(item => item.cartItemId !== cartItemId);
+      renderHeader();
+      renderStep2Lists();
+      renderFooter();
+      showToast('Item removed from order');
+    }
+
+    function handleSquadNumberInput(unitKey, rawVal, inputEl) {
+      let warning = null;
+      if (/\D/.test(rawVal)) {
+        warning = 'Numeric digits only allowed (1–99)';
+      }
+      let cleaned = rawVal.replace(/\D/g, '');
+      if (cleaned.length > 0) {
+        cleaned = String(parseInt(cleaned, 10) || '');
+      }
+      if (cleaned.length > 2) {
+        cleaned = cleaned.slice(0, 2);
+        warning = 'Maximum 2 digits allowed (numbers 1–99 only)';
+      }
+      if (cleaned && parseInt(cleaned, 10) > 99) {
+        cleaned = '99';
+        warning = 'Maximum squad number allowed is 99';
+      }
+
+      state.unitValidationWarnings[unitKey] = warning;
+      state.personalisationValues[unitKey] = cleaned;
+
+      // Keep sanitized value synced in the active input without losing mobile keyboard focus
+      if (inputEl && inputEl.value !== cleaned) {
+        inputEl.value = cleaned;
+      }
+
+      refreshStep3ValidationUI();
+    }
+
+    function assignNextFreeNumber(unitKey, sku) {
+      const units = getExpandedPersonalisationUnits();
+      const { analysis } = analyzePersonalisation(units);
+      const nextFree = analysis[sku]?.nextFree;
+      if (nextFree) {
+        state.personalisationValues[unitKey] = String(nextFree);
+        state.unitValidationWarnings[unitKey] = null;
+        renderMain();
+        showToast(`Assigned next free squad number #${nextFree}`);
+      }
+    }
+
+    function handleInitialsInput(unitKey, rawVal, inputEl) {
+      const upper = rawVal.toUpperCase();
+      state.personalisationValues[unitKey] = upper;
+      if (inputEl && inputEl.value !== upper) {
+        inputEl.value = upper;
+      }
+    }
+
+    // Iframe-safe copy using document.execCommand('copy')
+    function copyOrderText() {
+      const text = getFormattedOrderText();
+      const helper = document.getElementById('clipboard-helper');
+      helper.value = text;
+      helper.select();
+      helper.setSelectionRange(0, text.length);
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (e) {
+        copied = false;
+      }
+
+      if (!copied && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+
+      state.copiedSuccess = true;
+      renderMain();
+      showToast('Order details copied to clipboard!');
+      setTimeout(() => {
+        state.copiedSuccess = false;
+        if (state.currentStep === 4) renderMain();
+      }, 3000);
+    }
+
+    // CSV Download
+    function downloadCSV() {
+      const finalizedItems = getFinalizedOrderItems();
+      const grandTotal = getGrandTotal();
+      let csvContent = "Coach Name,Team / Age Group,SKU,Item Name,Size,Quantity,Unit Price (£),Line Total (£),Personalisation\n";
+
+      finalizedItems.forEach(item => {
+        const coach = `"${(state.coachDetails.name || '').replace(/"/g, '""')}"`;
+        const team = `"${(state.coachDetails.teamName || '').replace(/"/g, '""')}"`;
+        const name = `"${item.name.replace(/"/g, '""')}"`;
+        const sku = `"${item.sku}"`;
+        const size = `"${item.sizeLabel}"`;
+        const qty = item.quantity;
+        const unitPrice = item.unitPrice.toFixed(2);
+        const lineTotal = item.lineTotal.toFixed(2);
+
+        let persStr = 'N/A';
+        if (item.requiresNumber) {
+          persStr = item.personalisations.length > 0
+            ? item.personalisations.map(n => `#${n}`).join(' | ')
+            : 'None specified';
+        } else if (item.requiresInitials) {
+          persStr = item.personalisations.length > 0
+            ? item.personalisations.join(' | ')
+            : 'None specified';
+        }
+
+        const pers = `"${persStr.replace(/"/g, '""')}"`;
+        csvContent += `${coach},${team},${sku},${name},${size},${qty},${unitPrice},${lineTotal},${pers}\n`;
+      });
+
+      csvContent += `,,,,,,GRAND TOTAL (£):,${grandTotal.toFixed(2)},\n`;
+
+      try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const safeTeam = (state.coachDetails.teamName || 'Team').replace(/[^a-zA-Z0-9_-]/g, '_');
+        link.href = url;
+        link.setAttribute('download', `Whitburn_Panthers_Kit_Order_${safeTeam}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast('CSV order sheet downloaded!');
+      } catch (err) {
+        showToast('Use "Copy Order Text" below if your browser blocks file downloads.');
+      }
+    }
+
+    // Iframe-safe Mailto Trigger for Google Sites
+    function submitOrderEmail() {
+      const recipient = 'whitburnpanthers@gmail.com';
+      const teamPart = state.coachDetails.teamName.trim() || 'Unknown Team';
+      const coachPart = state.coachDetails.name.trim() || 'Unknown Coach';
+      const subject = `NEW TOTAL SPORT ORDER REQUEST + ${teamPart} ${coachPart}`;
+      const body = getFormattedOrderText();
+      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Trigger at top level to bypass Google Sites iframe sandboxing on mobile
+      try {
+        const a = document.createElement('a');
+        a.href = mailtoUrl;
+        a.target = '_top';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e) {
+        window.location.href = mailtoUrl;
+      }
+
+      showToast('Opening your email app to submit order...');
+    }
+
+    // =========================================================================
+    // 7. RENDERING FUNCTIONS
+    // =========================================================================
+    function renderHeader() {
+      const totalItemsCount = getTotalItemsCount();
+      const steps = [
+        { step: 1, label: '1. Details' },
+        { step: 2, label: '2. Select Kit' },
+        { step: 3, label: '3. Personalise' },
+        { step: 4, label: '4. Summary' }
+      ];
+
+      document.getElementById('app-header').innerHTML = `
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-md border border-red-400/30 text-white">
+              ${ICONS.shirt}
+            </div>
+            <div>
+              <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-wide text-white">
+                WHITBURN PANTHERS FC
+              </h1>
+              <p class="text-xs text-red-400 font-semibold">Kit Order Portal 2026</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            ${totalItemsCount > 0 ? `
+              <div class="bg-red-950 border border-red-800 text-red-300 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow">
+                ${ICONS.shoppingBag}
+                <span>${totalItemsCount} ${totalItemsCount === 1 ? 'item' : 'items'}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="bg-slate-950 px-4 py-2 border-t border-slate-800/80">
+          <div class="max-w-3xl mx-auto grid grid-cols-4 gap-1 text-[11px] font-semibold">
+            ${steps.map(s => {
+              const activeClass = state.currentStep === s.step
+                ? 'bg-red-600 text-white font-bold shadow-md'
+                : state.currentStep > s.step
+                  ? 'bg-slate-800 text-slate-300'
+                  : 'text-slate-500 bg-slate-900';
+              return `
+                <button type="button" onclick="goToStep(${s.step})" class="py-1.5 rounded text-center transition flex items-center justify-center gap-1 ${activeClass}">
+                  <span>${s.label}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep2BasketAndCatalogHTML() {
+      const totalItemsCount = getTotalItemsCount();
+      const filteredProducts = getFilteredProducts();
+
+      const basketHTML = state.cart.length > 0 ? `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-2 text-red-400">
+              ${ICONS.shoppingBag}
+              <span class="text-white">Selected Kit Summary (${totalItemsCount} items)</span>
+            </h3>
+            <button type="button" onclick="goToStep(3)" class="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1">
+              <span>Personalise</span>
+              ${ICONS.chevronRight}
+            </button>
+          </div>
+
+          <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            ${state.cart.map(item => `
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
+                ${getKitThumbnailHTML(item.sku, item.name, 'w-11 h-11')}
+                <div class="min-w-0 flex-1">
+                  <p class="font-bold text-white truncate">${escapeHtml(item.name)}</p>
+                  <p class="text-slate-400">
+                    Size: <span class="text-slate-200 font-semibold">${escapeHtml(item.sizeLabel)}</span> • £${item.unitPrice.toFixed(2)} each
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center bg-slate-900 rounded-lg border border-slate-800">
+                    <button type="button" onclick="updateCartQuantity('${item.cartItemId}', -1)" class="p-2 text-slate-400 hover:text-white" aria-label="Decrease quantity">
+                      ${ICONS.minus}
+                    </button>
+                    <span class="w-7 text-center font-bold text-white">${item.quantity}</span>
+                    <button type="button" onclick="updateCartQuantity('${item.cartItemId}', 1)" class="p-2 text-slate-400 hover:text-white" aria-label="Increase quantity">
+                      ${ICONS.plus}
+                    </button>
+                  </div>
+
+                  <button type="button" onclick="removeCartItem('${item.cartItemId}')" class="p-2 text-slate-500 hover:text-red-400" aria-label="Remove item">
+                    ${ICONS.trash}
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : '';
+
+      const catalogHTML = filteredProducts.length === 0 ? `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
+          No kit items match "${escapeHtml(state.searchQuery)}". Try clearing your search or switching categories.
+        </div>
+      ` : filteredProducts.map(product => {
+        const minPrice = Math.min(...product.sizes.map(s => s.price));
+        return `
+          <div class="bg-slate-900 border border-slate-800 hover:border-red-900/50 rounded-2xl p-4 shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              ${getKitThumbnailHTML(product.sku, product.name, 'w-16 h-16')}
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[10px] font-bold text-red-400 bg-red-950 border border-red-800 px-2 py-0.5 rounded uppercase tracking-wider">
+                    ${escapeHtml(product.category)}
+                  </span>
+                  <span class="text-xs font-extrabold text-slate-300">
+                    From £${minPrice.toFixed(2)}
+                  </span>
+                </div>
+                <h3 class="font-extrabold text-white text-base mt-1 leading-snug">${escapeHtml(product.name)}</h3>
+                <p class="text-xs font-mono text-slate-400 mt-0.5">${escapeHtml(product.sku)}</p>
+                ${product.badgeText ? `<p class="text-[11px] text-amber-400 font-semibold mt-1">${escapeHtml(product.badgeText)}</p>` : ''}
+              </div>
+            </div>
+
+            <button type="button" onclick="openProductModal('${product.id}')" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-4 py-3 rounded-xl shadow transition text-xs flex items-center justify-center gap-1.5 self-start sm:self-center flex-shrink-0">
+              <span>Select Sizes</span>
+              ${ICONS.chevronRight}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        ${basketHTML}
+        <div class="space-y-3">${catalogHTML}</div>
+      `;
+    }
+
+    function renderStep2Lists() {
+      const container = document.getElementById('step2-dynamic-lists');
+      if (container) {
+        container.innerHTML = renderStep2BasketAndCatalogHTML();
+      }
+    }
+
+    // Targeted update on Step 3 so typing numbers doesn't disrupt mobile keyboard focus
+    function refreshStep3ValidationUI() {
+      const units = getExpandedPersonalisationUnits();
+      const { groupedBySku, analysis, hasErrors, duplicateCount } = analyzePersonalisation(units);
+
+      // 1. Update SKU summary badges
+      const skuSummaryEl = document.getElementById('step3-sku-summary');
+      if (skuSummaryEl && Object.keys(groupedBySku).length > 0) {
+        skuSummaryEl.innerHTML = Object.keys(groupedBySku).map(sku => {
+          const sampleUnit = groupedBySku[sku][0];
+          const skuAnalysis = analysis[sku];
+          const assigned = skuAnalysis?.assignedList || [];
+
+          const badges = assigned.length === 0
+            ? `<span class="text-[10px] text-slate-500 italic">No numbers assigned yet</span>`
+            : assigned.map(num => {
+                const isDupe = skuAnalysis.duplicates.has(num);
+                return `<span class="px-2 py-0.5 rounded text-[11px] font-black ${isDupe ? 'bg-red-600 text-white animate-pulse' : 'bg-red-950 text-red-300 border border-red-800'}">#${num}</span>`;
+              }).join('');
+
+          const nextFreeTag = skuAnalysis?.nextFree
+            ? `<span class="text-[10px] text-slate-400 font-mono ml-1">(Next free: #${skuAnalysis.nextFree})</span>`
+            : '';
+
+          return `
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs border-b border-slate-900 pb-2 last:border-0 last:pb-0">
+              <span class="font-bold text-white truncate max-w-[220px]">${escapeHtml(sampleUnit.name)}</span>
+              <div class="flex items-center gap-1.5 flex-wrap">${badges}${nextFreeTag}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 2. Update individual unit cards (duplicate highlights, warnings, Next Free button)
+      units.forEach(unit => {
+        if (!unit.requiresNumber) return;
+        const val = (state.personalisationValues[unit.unitKey] || '').trim();
+        const warning = state.unitValidationWarnings[unit.unitKey];
+        const numVal = parseInt(val, 10);
+        const skuAnalysis = analysis[unit.sku];
+        const isDuplicate = Boolean(val && skuAnalysis?.duplicates.has(numVal));
+
+        const cardEl = document.getElementById(`card_${unit.unitKey}`);
+        const inputEl = document.getElementById(`input_${unit.unitKey}`);
+        const nextBtnSlot = document.getElementById(`nextbtn_${unit.unitKey}`);
+        const msgSlot = document.getElementById(`msgs_${unit.unitKey}`);
+
+        if (cardEl) {
+          cardEl.className = `bg-slate-950 rounded-xl p-3.5 space-y-2 border transition ${
+            isDuplicate ? 'border-red-500 bg-red-950/20' : 'border-slate-800'
+          }`;
+        }
+
+        if (inputEl) {
+          inputEl.className = `w-full bg-slate-900 border rounded-lg py-2.5 px-3 font-bold text-sm focus:outline-none transition ${
+            isDuplicate
+              ? 'border-red-500 text-red-300 bg-red-950/40 focus:border-red-400'
+              : 'border-slate-700 text-white focus:border-red-500'
+          }`;
+        }
+
+        if (nextBtnSlot) {
+          if (skuAnalysis?.nextFree && isDuplicate) {
+            nextBtnSlot.innerHTML = `
+              <button type="button" onclick="assignNextFreeNumber('${unit.unitKey}', '${unit.sku}')" class="text-[11px] font-bold text-amber-300 hover:text-white bg-amber-950 border border-amber-700/60 px-2.5 py-1 rounded transition flex items-center gap-1">
+                ${ICONS.sparkles}
+                <span>Use Next Free (#${skuAnalysis.nextFree})</span>
+              </button>
+            `;
+          } else {
+            nextBtnSlot.innerHTML = '';
+          }
+        }
+
+        if (msgSlot) {
+          let msgsHTML = '';
+          if (warning) {
+            msgsHTML += `
+              <p class="text-[11px] text-amber-400 font-medium flex items-center gap-1 mt-1">
+                ${ICONS.alertCircle}
+                <span>${escapeHtml(warning)}</span>
+              </p>
+            `;
+          }
+          if (isDuplicate) {
+            msgsHTML += `
+              <div class="mt-1.5 p-2 bg-red-950/80 border border-red-700 rounded-lg text-xs text-red-200 font-medium flex items-start gap-2">
+                <span class="text-red-400 flex-shrink-0 mt-0.5">${ICONS.alertTriangle}</span>
+                <div>
+                  <p class="font-bold">Duplicate Squad Number #${escapeHtml(val)}</p>
+                  <p class="text-[11px] text-red-300">
+                    This number is already assigned to another garment for this product. Please choose a unique number.
+                  </p>
+                </div>
+              </div>
+            `;
+          }
+          msgSlot.innerHTML = msgsHTML;
+        }
+      });
+
+      // 3. Update blocking warning banner & Next button
+      const blockerBanner = document.getElementById('step3-blocker-banner');
+      if (blockerBanner) {
+        if (hasErrors) {
+          blockerBanner.classList.remove('hidden');
+          blockerBanner.innerHTML = `
+            <div class="flex items-center gap-2 font-bold text-sm text-red-300">
+              <span class="text-red-400">${ICONS.alertTriangle}</span>
+              <span>Cannot Proceed to Summary</span>
+            </div>
+            <p>• ${duplicateCount} duplicate squad number(s) detected. Each player on the same product must have a unique number.</p>
+          `;
+        } else {
+          blockerBanner.classList.add('hidden');
+        }
+      }
+
+      const nextBtn = document.getElementById('step3-next-btn');
+      if (nextBtn) {
+        nextBtn.disabled = hasErrors;
+        nextBtn.className = `flex-1 font-extrabold py-3.5 rounded-xl shadow-xl transition text-center text-sm flex items-center justify-center gap-2 ${
+          hasErrors
+            ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+            : 'bg-red-600 hover:bg-red-700 text-white'
+        }`;
+      }
+    }
+
+    function renderMain() {
+      const main = document.getElementById('app-main');
+
+      // STEP 1: COACH DETAILS
+      if (state.currentStep === 1) {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fade-in">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+              <div class="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div class="p-3 bg-red-950/80 text-red-400 rounded-xl border border-red-800/50">
+                  ${ICONS.user}
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-white">Coach & Team Details</h2>
+                  <p class="text-xs text-slate-400">Identify your squad before selecting items.</p>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                    Coach Name *
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-3.5 text-slate-500">${ICONS.userSm}</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mark Johnstone"
+                      value="${escapeHtml(state.coachDetails.name)}"
+                      oninput="state.coachDetails.name = this.value"
+                      class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                    Team / Age Group *
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-3.5 text-slate-500">${ICONS.shield}</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. U11 Panthers Reds"
+                      value="${escapeHtml(state.coachDetails.teamName)}"
+                      oninput="state.coachDetails.teamName = this.value"
+                      class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-red-500 font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onclick="goToStep(2)"
+              class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-extrabold py-4 rounded-xl shadow-xl transition flex items-center justify-center gap-2 text-base tracking-wide"
+            >
+              <span>Next: Select Kit</span>
+              ${ICONS.arrowRight}
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // STEP 2: SELECT KIT & QUANTITIES
+      if (state.currentStep === 2) {
+        main.innerHTML = `
+          <div class="space-y-4 animate-fade-in">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+              <div class="relative">
+                <span class="absolute left-3.5 top-3 text-slate-400">${ICONS.search}</span>
+                <input
+                  type="text"
+                  placeholder="Search kit by name or SKU..."
+                  value="${escapeHtml(state.searchQuery)}"
+                  oninput="state.searchQuery = this.value; renderStep2Lists();"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+                ${CATEGORIES.map(cat => `
+                  <button
+                    type="button"
+                    onclick="state.selectedCategory = '${cat}'; renderMain();"
+                    class="whitespace-nowrap px-3.5 py-2 rounded-lg font-bold transition ${
+                      state.selectedCategory === cat
+                        ? 'bg-red-600 text-white shadow-md'
+                        : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }"
+                  >
+                    ${cat}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div id="step2-dynamic-lists" class="space-y-4">
+              ${renderStep2BasketAndCatalogHTML()}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // STEP 3: PERSONALISATION
+      if (state.currentStep === 3) {
+        const units = getExpandedPersonalisationUnits();
+        const { groupedBySku, analysis, hasErrors, duplicateCount } = analyzePersonalisation(units);
+
+        const skuSummarySection = Object.keys(groupedBySku).length > 0 ? `
+          <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3.5 space-y-2">
+            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+              Assigned Squad Numbers by Kit Item:
+            </span>
+            <div id="step3-sku-summary" class="space-y-2"></div>
+          </div>
+        ` : '';
+
+        const unitsBody = units.length === 0 ? `
+          <div class="text-center py-8 bg-slate-950 border border-slate-800 rounded-xl p-4">
+            <div class="text-emerald-400 flex justify-center mb-2">${ICONS.checkCircle}</div>
+            <p class="text-white font-bold text-sm mb-1">No Personalisation Required!</p>
+            <p class="text-xs text-slate-400 mb-4">
+              None of the kit items currently in your basket require squad numbers or player initials.
+            </p>
+            <button type="button" onclick="goToStep(4)" class="bg-red-600 text-white font-bold text-xs px-5 py-3 rounded-xl shadow">
+              Proceed to Order Summary
+            </button>
+          </div>
+        ` : `
+          <div class="space-y-3">
+            ${units.map(unit => {
+              const value = state.personalisationValues[unit.unitKey] || '';
+              return `
+                <div id="card_${unit.unitKey}" class="bg-slate-950 rounded-xl p-3.5 space-y-2 border border-slate-800 transition">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      ${getKitThumbnailHTML(unit.sku, unit.name, 'w-12 h-12')}
+                      <div>
+                        <p class="font-extrabold text-white text-sm">${escapeHtml(unit.name)}</p>
+                        <p class="text-xs text-slate-400 font-medium">
+                          Size: <span class="text-white font-bold">${escapeHtml(unit.sizeLabel)}</span>
+                          ${unit.totalQuantity > 1 ? ` (Garment ${unit.unitNumber} of ${unit.totalQuantity})` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-500 flex-shrink-0">${escapeHtml(unit.sku)}</span>
+                  </div>
+
+                  <div class="pt-1 space-y-2">
+                    ${unit.requiresNumber ? `
+                      <div>
+                        <div class="flex items-center justify-between mb-1">
+                          <label class="block text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                            ${ICONS.hash}
+                            <span>Squad Number (1–99, Optional)</span>
+                          </label>
+                          <div id="nextbtn_${unit.unitKey}"></div>
+                        </div>
+
+                        <input
+                          id="input_${unit.unitKey}"
+                          type="text"
+                          inputmode="numeric"
+                          pattern="[0-9]*"
+                          maxlength="2"
+                          placeholder="e.g. 9"
+                          value="${escapeHtml(value)}"
+                          oninput="handleSquadNumberInput('${unit.unitKey}', this.value, this)"
+                          class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 px-3 font-bold text-sm text-white focus:outline-none focus:border-red-500 transition"
+                        />
+                        <div id="msgs_${unit.unitKey}"></div>
+                      </div>
+                    ` : ''}
+
+                    ${unit.requiresInitials ? `
+                      <div>
+                        <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          ${ICONS.type}
+                          <span>Player Initials (Max 4 Letters, Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          maxlength="4"
+                          placeholder="e.g. WH"
+                          value="${escapeHtml(value)}"
+                          oninput="handleInitialsInput('${unit.unitKey}', this.value, this)"
+                          class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 px-3 text-white font-bold text-sm uppercase focus:outline-none focus:border-red-500"
+                        />
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        main.innerHTML = `
+          <div class="space-y-6 animate-fade-in">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <h2 class="text-lg font-bold text-white">Kit Personalisation</h2>
+                  <p class="text-xs text-slate-400">
+                    Enter squad numbers (optional) or initials for each individual garment.
+                  </p>
+                </div>
+                <span class="bg-red-950 text-red-300 border border-red-800 px-2.5 py-1 rounded-full text-xs font-bold">
+                  ${units.length} ${units.length === 1 ? 'Item' : 'Items'}
+                </span>
+              </div>
+
+              ${skuSummarySection}
+              ${unitsBody}
+            </div>
+
+            <div id="step3-blocker-banner" class="hidden bg-red-950/90 border-2 border-red-600 rounded-xl p-4 text-red-200 text-xs shadow-xl space-y-1 animate-pulse"></div>
+
+            <div class="flex gap-3">
+              <button type="button" onclick="goToStep(2)" class="bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold py-3.5 px-5 rounded-xl border border-slate-800 transition text-sm flex items-center justify-center gap-1">
+                ${ICONS.chevronLeft}
+                <span>Back</span>
+              </button>
+
+              <button id="step3-next-btn" type="button" onclick="goToStep(4)" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-extrabold py-3.5 rounded-xl shadow-xl transition text-center text-sm flex items-center justify-center gap-2">
+                <span>Next: Order Summary</span>
+                ${ICONS.chevronRight}
+              </button>
+            </div>
+          </div>
+        `;
+
+        refreshStep3ValidationUI();
+        return;
+      }
+
+      // STEP 4: FINAL ORDER SUMMARY & EXPORT
+      if (state.currentStep === 4) {
+        const finalizedItems = getFinalizedOrderItems();
+        const totalItemsCount = getTotalItemsCount();
+        const grandTotal = getGrandTotal();
+        const orderText = getFormattedOrderText();
+        const subjectLine = `NEW TOTAL SPORT ORDER REQUEST + ${state.coachDetails.teamName || '<Team Name>'} ${state.coachDetails.name || '<Coach Name>'}`;
+
+        main.innerHTML = `
+          <div class="space-y-6 animate-fade-in">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <span class="text-[10px] font-bold text-red-400 bg-red-950 border border-red-800 px-2 py-0.5 rounded uppercase tracking-wider">
+                    Ready to Export
+                  </span>
+                  <h2 class="text-xl font-black text-white mt-1">Final Order Summary</h2>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs text-slate-400 block font-medium">Grand Total</span>
+                  <span class="text-2xl font-black text-red-500">£${grandTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs">
+                <div>
+                  <span class="text-slate-400 block font-medium">Coach Name:</span>
+                  <span class="font-extrabold text-white">${escapeHtml(state.coachDetails.name || 'N/A')}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block font-medium">Team / Age Group:</span>
+                  <span class="font-extrabold text-white">${escapeHtml(state.coachDetails.teamName || 'N/A')}</span>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Itemized Kit List (${totalItemsCount} items)
+                </h3>
+
+                <div class="space-y-2">
+                  ${finalizedItems.map((item, idx) => `
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div class="flex items-start gap-3">
+                        ${getKitThumbnailHTML(item.sku, item.name, 'w-12 h-12 mt-0.5')}
+                        <div class="space-y-1">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-slate-400">${idx + 1}.</span>
+                            <span class="font-extrabold text-white">${escapeHtml(item.name)}</span>
+                            <span class="text-[10px] font-mono text-slate-500">(${escapeHtml(item.sku)})</span>
+                          </div>
+                          <div class="text-slate-300 font-medium pl-4">
+                            Size: <span class="font-bold text-white">${escapeHtml(item.sizeLabel)}</span> | Qty: <span class="font-bold text-white">${item.quantity}</span> x £${item.unitPrice.toFixed(2)}
+                          </div>
+
+                          ${item.requiresNumber ? `
+                            <div class="pl-4 text-red-300 font-bold">
+                              Squad Numbers: ${item.personalisations.length > 0 ? item.personalisations.map(n => `#${escapeHtml(n)}`).join(', ') : 'None specified'}
+                            </div>
+                          ` : ''}
+
+                          ${item.requiresInitials ? `
+                            <div class="pl-4 text-amber-300 font-bold">
+                              Initials: ${item.personalisations.length > 0 ? escapeHtml(item.personalisations.join(', ')) : 'None specified'}
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+
+                      <div class="text-right sm:border-l sm:border-slate-800 sm:pl-4">
+                        <span class="font-black text-sm text-white block">
+                          £${item.lineTotal.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- PRIMARY & FALLBACK EXPORT ACTIONS -->
+            <div class="space-y-3">
+              <button
+                type="button"
+                onclick="submitOrderEmail()"
+                class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-extrabold py-4 rounded-xl shadow-xl transition flex items-center justify-center gap-2 text-base tracking-wide"
+              >
+                ${ICONS.send}
+                <span>Submit Order to Club for Checking</span>
+              </button>
+
+              <p class="text-[11px] text-slate-400 text-center font-medium px-2">
+                Opens your mail application to send to <strong class="text-white font-mono">whitburnpanthers@gmail.com</strong> with subject line: <strong class="text-red-400 font-mono block mt-0.5">${escapeHtml(subjectLine)}</strong>
+              </p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onclick="copyOrderText()"
+                  class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold py-3.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs"
+                >
+                  ${state.copiedSuccess ? `<span class="text-emerald-400">${ICONS.check}</span>` : `<span class="text-slate-400">${ICONS.copy}</span>`}
+                  <span>${state.copiedSuccess ? 'Copied to Clipboard!' : 'Copy Order Text (Heja / Email)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onclick="downloadCSV()"
+                  class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold py-3.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs"
+                >
+                  <span class="text-slate-400">${ICONS.download}</span>
+                  <span>Download CSV File</span>
+                </button>
+              </div>
+
+              <!-- MANUAL SELECTABLE ORDER TEXT BOX (Mobile / Heja / Google Sites Backup) -->
+              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-2 mt-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                    Plain-Text Order Preview (Tap & Hold to Copy Manually)
+                  </span>
+                </div>
+                <textarea
+                  readonly
+                  rows="8"
+                  onclick="this.select()"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-300 focus:outline-none focus:border-red-500"
+                >${escapeHtml(orderText)}</textarea>
+              </div>
+
+              <button
+                type="button"
+                onclick="goToStep(2)"
+                class="text-xs text-slate-400 hover:text-white underline block mx-auto py-2"
+              >
+                Edit Kit Items or Quantities
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderModal() {
+      const modalEl = document.getElementById('app-modal');
+      if (!state.activeProduct) {
+        modalEl.className = 'hidden';
+        modalEl.innerHTML = '';
+        return;
+      }
+
+      const product = state.activeProduct;
+      const subtotal = state.selectedSize ? state.selectedSize.price * state.quantity : 0;
+
+      modalEl.className = 'fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in';
+      modalEl.innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-5">
+          <div class="flex items-start gap-3 border-b border-slate-800 pb-3">
+            ${getKitThumbnailHTML(product.sku, product.name, 'w-16 h-16')}
+            <div class="flex-1">
+              <span class="text-[10px] font-bold text-red-400 bg-red-950 border border-red-800 px-2 py-0.5 rounded uppercase tracking-wider">
+                ${escapeHtml(product.category)}
+              </span>
+              <h3 class="font-extrabold text-white text-lg mt-1 leading-snug">${escapeHtml(product.name)}</h3>
+              <p class="text-xs font-mono text-slate-400">${escapeHtml(product.sku)}</p>
+            </div>
+            <button type="button" onclick="closeProductModal()" class="p-2 rounded-lg text-slate-400 hover:text-white bg-slate-950 border border-slate-800" aria-label="Close modal">
+              ${ICONS.x}
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              Select Size *
+            </label>
+            <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              ${product.sizes.map(size => {
+                const isSelected = state.selectedSize && state.selectedSize.code === size.code;
+                return `
+                  <button
+                    type="button"
+                    onclick="selectModalSize('${size.code}')"
+                    class="p-3 rounded-xl border text-left flex justify-between items-center transition ${
+                      isSelected
+                        ? 'bg-red-600/20 border-red-500 text-white shadow'
+                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'
+                    }"
+                  >
+                    <span class="text-xs font-bold">${escapeHtml(size.label)}</span>
+                    <span class="text-xs font-extrabold text-red-400">£${size.price.toFixed(2)}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-800 pt-3">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Quantity</span>
+            <div class="flex items-center bg-slate-950 rounded-xl border border-slate-800">
+              <button type="button" onclick="updateModalQuantity(-1)" class="p-3 text-slate-400 hover:text-white" aria-label="Decrease quantity">
+                ${ICONS.minus}
+              </button>
+              <span class="w-10 text-center font-bold text-sm text-white">${state.quantity}</span>
+              <button type="button" onclick="updateModalQuantity(1)" class="p-3 text-slate-400 hover:text-white" aria-label="Increase quantity">
+                ${ICONS.plus}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-800 pt-4">
+            <div>
+              <span class="text-[10px] text-slate-400 uppercase block font-medium">Subtotal</span>
+              <span class="text-xl font-black text-red-500">£${subtotal.toFixed(2)}</span>
+            </div>
+
+            <button
+              type="button"
+              onclick="addToCartFromModal()"
+              class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold px-6 py-3.5 rounded-xl shadow-lg transition flex items-center gap-2 text-sm"
+            >
+              ${ICONS.shoppingBag}
+              <span>Add to Basket</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFooter() {
+      const footerEl = document.getElementById('app-footer');
+      if (state.currentStep !== 2) {
+        footerEl.className = 'hidden';
+        footerEl.innerHTML = '';
+        return;
+      }
+
+      const totalItemsCount = getTotalItemsCount();
+      const grandTotal = getGrandTotal();
+
+      footerEl.className = 'fixed bottom-0 left-0 right-0 z-20 bg-slate-950/95 backdrop-blur-md border-t border-red-900/50 p-3 shadow-2xl';
+      footerEl.innerHTML = `
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-3">
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+              ${totalItemsCount} ${totalItemsCount === 1 ? 'item' : 'items'} selected
+            </span>
+            <span class="text-xl font-black text-white">£${grandTotal.toFixed(2)}</span>
+          </div>
+
+          <button
+            type="button"
+            onclick="goToStep(3)"
+            class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold px-6 py-3.5 rounded-xl shadow-lg transition flex items-center gap-2 text-sm"
+          >
+            <span>Next: Personalisation</span>
+            ${ICONS.chevronRight}
+          </button>
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderMain();
+      renderModal();
+      renderFooter();
+    }
+
+    // Initialize Application
+    renderAll();
+  </script>
+</body>
+</html>
