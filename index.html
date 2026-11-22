@@ -822,6 +822,11 @@
       },
       submissions: loadStoredSubmissions(),
       officialFilter: 'all', // 'all' | 'pending' | 'approved' | 'sent'
+      officialSearchQuery: '',
+      officialTeamFilter: 'all',
+      officialDateFrom: '',
+      officialDateTo: '',
+      officialSort: 'date-desc',
       consolidatedGroupMode: 'sku', // 'sku' | 'team'
       expandedOrderIds: {},
       pendingDeleteId: null
@@ -2436,6 +2441,19 @@
       showToast(`Marked ${approved.length} order(s) as Sent to Total Sport`);
     }
 
+    function updateOfficialOrderFilter(field, value) {
+      state[field] = value;
+      renderMain();
+      const input = document.querySelector(`[data-official-filter="${field}"]`);
+      if (input) {
+        input.focus();
+        if (input.type === 'text' || input.type === 'search') {
+          const end = input.value.length;
+          input.setSelectionRange(end, end);
+        }
+      }
+    }
+
     // =========================================================================
     // 7. UI RENDERING FUNCTIONS
     // =========================================================================
@@ -2577,9 +2595,39 @@
       const sentCount = state.submissions.filter(s => s.status === 'sent').length;
       const summary = getConsolidatedSummary();
 
+      const teams = Array.from(new Set(state.submissions.map(order => order.teamName).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b));
+      const query = state.officialSearchQuery.trim().toLowerCase();
       const filteredOrders = state.submissions.filter(order => {
-        if (state.officialFilter === 'all') return true;
-        return order.status === state.officialFilter;
+        if (state.officialFilter !== 'all' && order.status !== state.officialFilter) return false;
+        if (state.officialTeamFilter !== 'all' && order.teamName !== state.officialTeamFilter) return false;
+
+        const orderDate = new Date(order.status === 'sent' && order.sentAt ? order.sentAt : order.submittedAt);
+        if (state.officialDateFrom || state.officialDateTo) {
+          if (Number.isNaN(orderDate.getTime())) return false;
+          const dateKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
+          if (state.officialDateFrom && dateKey < state.officialDateFrom) return false;
+          if (state.officialDateTo && dateKey > state.officialDateTo) return false;
+        }
+
+        if (query) {
+          const searchable = [
+            order.id,
+            order.teamName,
+            order.coachName,
+            ...(order.items || []).flatMap(item => [item.name, item.sku, item.size])
+          ].join(' ').toLowerCase();
+          if (!searchable.includes(query)) return false;
+        }
+        return true;
+      });
+
+      filteredOrders.sort((a, b) => {
+        const dateFor = order => new Date(order.status === 'sent' && order.sentAt ? order.sentAt : order.submittedAt).getTime() || 0;
+        if (state.officialSort === 'date-asc') return dateFor(a) - dateFor(b);
+        if (state.officialSort === 'team-asc') return (a.teamName || '').localeCompare(b.teamName || '');
+        if (state.officialSort === 'team-desc') return (b.teamName || '').localeCompare(a.teamName || '');
+        return dateFor(b) - dateFor(a);
       });
 
       main.innerHTML = `
@@ -2640,6 +2688,65 @@
             </div>
           </div>
 
+          <!-- SEARCH AND FILTER ORDERS -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <label class="space-y-1">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Search orders</span>
+              <input
+                type="search"
+                placeholder="Team, coach, item or order ID"
+                value="${escapeHtml(state.officialSearchQuery)}"
+                data-official-filter="officialSearchQuery"
+                oninput="updateOfficialOrderFilter('officialSearchQuery', this.value)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </label>
+            <label class="space-y-1">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team</span>
+              <select
+                data-official-filter="officialTeamFilter"
+                onchange="updateOfficialOrderFilter('officialTeamFilter', this.value)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="all" ${state.officialTeamFilter === 'all' ? 'selected' : ''}>All teams</option>
+                ${teams.map(team => `<option value="${escapeHtml(team)}" ${state.officialTeamFilter === team ? 'selected' : ''}>${escapeHtml(team)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">From date</span>
+              <input
+                type="date"
+                value="${escapeHtml(state.officialDateFrom)}"
+                data-official-filter="officialDateFrom"
+                onchange="updateOfficialOrderFilter('officialDateFrom', this.value)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              />
+            </label>
+            <label class="space-y-1">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">To date</span>
+              <input
+                type="date"
+                value="${escapeHtml(state.officialDateTo)}"
+                data-official-filter="officialDateTo"
+                onchange="updateOfficialOrderFilter('officialDateTo', this.value)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              />
+            </label>
+            <label class="space-y-1">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort by</span>
+              <select
+                data-official-filter="officialSort"
+                onchange="updateOfficialOrderFilter('officialSort', this.value)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="date-desc" ${state.officialSort === 'date-desc' ? 'selected' : ''}>Newest date</option>
+                <option value="date-asc" ${state.officialSort === 'date-asc' ? 'selected' : ''}>Oldest date</option>
+                <option value="team-asc" ${state.officialSort === 'team-asc' ? 'selected' : ''}>Team (A–Z)</option>
+                <option value="team-desc" ${state.officialSort === 'team-desc' ? 'selected' : ''}>Team (Z–A)</option>
+              </select>
+            </label>
+          </div>
+
           <!-- FILTER TABS -->
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex gap-2 overflow-x-auto no-scrollbar text-xs">
@@ -2688,7 +2795,8 @@
 
               const dateLabel = (() => {
                 try {
-                  return new Date(order.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  const dateValue = order.status === 'sent' && order.sentAt ? order.sentAt : order.submittedAt;
+                  return new Date(dateValue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                 } catch (e) {
                   return 'Recent';
                 }
