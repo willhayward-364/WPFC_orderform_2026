@@ -1021,7 +1021,7 @@
       const totalItemsCount = getTotalItemsCount();
       const grandTotal = getGrandTotal();
       return [
-        `Hi Club Kit Secretary,`,
+        `Hi`,
         ``,
         `Please find attached the formatted 2026 kit order form for ${state.coachDetails.teamName || 'N/A'} (Coach: ${state.coachDetails.name || 'N/A'}).`,
         `Total Garments/Items: ${totalItemsCount} | Estimated Total: £${grandTotal.toFixed(2)}`,
@@ -1510,14 +1510,9 @@
       }
     }
 
-    // Copy club email, subject, and short cover note
+    // Copy the short email body
     function copySubmissionDetails() {
-      const text = [
-        `To: whitburnpanthers@gmail.com`,
-        `Subject: ${getEmailSubject()}`,
-        ``,
-        getShortEmailCoverNote()
-      ].join('\n');
+      const text = getShortEmailCoverNote();
 
       const helper = document.getElementById('clipboard-helper');
       helper.value = text;
@@ -1537,7 +1532,7 @@
 
       state.copiedSuccess = true;
       renderMain();
-      showToast('Club email & subject copied to clipboard!');
+      showToast('Email body copied to clipboard!');
       setTimeout(() => {
         state.copiedSuccess = false;
         if (state.currentStep === 4) renderMain();
@@ -1640,7 +1635,7 @@
         if (navigator.canShare && navigator.canShare({ files: [orderFile] })) {
           navigator.share({
             title: subject,
-            text: `To: ${recipient}\nSubject: ${subject}\n\n${coverNote}`,
+            text: coverNote,
             files: [orderFile]
           }).catch((err) => {
             if (err && err.name !== 'AbortError') {
@@ -1663,8 +1658,7 @@
         triggerBlobDownload(htmlContent, 'text/html;charset=utf-8;', filename);
       } catch (e) {}
 
-      const bodyWithAttachmentReminder = `${coverNote}\n\n[Attached File: ${filename}]`;
-      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyWithAttachmentReminder)}`;
+      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(coverNote)}`;
 
       try {
         const a = document.createElement('a');
@@ -3686,7 +3680,7 @@
                     class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5 text-[11px]"
                   >
                     ${state.copiedSuccess ? `<span class="text-emerald-400">${ICONS.check}</span>` : `<span class="text-slate-400">${ICONS.copy}</span>`}
-                    <span>${state.copiedSuccess ? 'Copied!' : 'Copy Email & Subject'}</span>
+                    <span>${state.copiedSuccess ? 'Copied!' : 'Copy Email Body'}</span>
                   </button>
                 </div>
 
