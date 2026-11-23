@@ -815,14 +815,18 @@
           orderRevision = result.revision;
         } catch (error) {
           saveGeneration++;
-          showToast(error.message);
+          state.storageError = error.message;
           if (error.status === 401) {
             state.officialUser = null;
             state.submissions = [];
+            state.loginForm.error = 'Your session expired. Sign in again; your unsaved changes were not saved.';
             renderAll();
           } else {
             try { await refreshSubmissions(); } catch (_) {
-              showToast('Could not save or refresh orders. Reload and sign in again.');
+              state.officialUser = null;
+              state.submissions = [];
+              state.loginForm.error = 'Could not save or refresh orders. Sign in again and reapply your changes.';
+              renderAll();
             }
           }
         }
@@ -855,6 +859,7 @@
       },
       submissions: [],
       audit: [],
+      storageError: '',
       officialFilter: 'all', // 'all' | 'pending' | 'approved' | 'sent'
       officialSearchQuery: '',
       officialTeamFilter: 'all',
@@ -1718,6 +1723,7 @@
       }
       try {
         state.officialUser = await api('/api/login', 'POST', { name, password: code });
+        state.storageError = '';
         await refreshSubmissions();
         state.loginForm.error = '';
         state.loginForm.passcode = '';
@@ -1745,20 +1751,27 @@
 
     async function refreshOfficialOrders() {
       await saveQueue;
-      try { await refreshSubmissions(); } catch (error) { showToast(error.message); }
+      try {
+        state.storageError = '';
+        await refreshSubmissions();
+      } catch (error) { showToast(error.message); }
     }
 
     function importLocalOrders() {
       const local = loadStoredSubmissions();
       const existing = new Set(state.submissions.map(order => order.id));
-      const additions = local.filter(order => order && typeof order.id === 'string' &&
-        /^[A-Za-z0-9_-]{1,128}$/.test(order.id) && !existing.has(order.id));
+      const additions = local.filter(order => {
+        if (!order || typeof order.id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(order.id) || existing.has(order.id)) return false;
+        existing.add(order.id);
+        return true;
+      });
       if (!additions.length) {
         showToast('No new local orders found on this browser.');
         return;
       }
+      const generation = saveGeneration;
       saveStoredSubmissions([...state.submissions, ...additions]);
-      saveQueue.then(() => refreshOfficialOrders());
+      saveQueue.then(() => { if (generation === saveGeneration) refreshOfficialOrders(); });
       showToast('Importing local orders; existing shared orders are kept.');
     }
 
@@ -1857,26 +1870,26 @@
           return {
             id: typeof data.orderId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(data.orderId)
               ? data.orderId : `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            submittedAt: data.submittedAt || new Date().toISOString(),
-            coachName: data.coachName || 'Imported Coach',
-            teamName: data.teamName || 'Imported Team',
-            totalItems: data.totalItems || data.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
+            submittedAt: String(data.submittedAt || new Date().toISOString()),
+            coachName: String(data.coachName || 'Imported Coach'),
+            teamName: String(data.teamName || 'Imported Team'),
+            totalItems: Number(data.totalItems || data.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0)),
             grandTotal: Number(data.grandTotal || data.items.reduce((s, it) => s + (Number(it.lineTotal) || 0), 0)),
             status: 'pending',
             officialNote: '',
             items: data.items.map(it => ({
-              productId: it.productId || it.sku,
-              sku: it.sku,
-              name: it.name,
-              category: it.category || 'Kit Item',
-              sizeCode: it.sizeCode || it.sizeLabel,
-              sizeLabel: it.sizeLabel,
+              productId: String(it.productId || it.sku || ''),
+              sku: String(it.sku || ''),
+              name: String(it.name || ''),
+              category: String(it.category || 'Kit Item'),
+              sizeCode: String(it.sizeCode || it.sizeLabel || ''),
+              sizeLabel: String(it.sizeLabel || ''),
               quantity: Number(it.quantity) || 1,
               unitPrice: Number(it.unitPrice) || 0,
               lineTotal: Number(it.lineTotal) || 0,
               requiresNumber: Boolean(it.requiresNumber),
               requiresInitials: Boolean(it.requiresInitials),
-              personalisations: Array.isArray(it.personalisations) ? it.personalisations : [],
+              personalisations: Array.isArray(it.personalisations) ? it.personalisations.map(String) : [],
               checked: false
             }))
           };
@@ -2645,6 +2658,7 @@
 
       main.innerHTML = `
         <div class="space-y-6 animate-fade-in">
+          ${state.storageError ? `<div role="alert" class="bg-red-950 border border-red-700 rounded-xl p-4 text-sm text-red-200">${escapeHtml(state.storageError)}</div>` : ''}
           <!-- TOP METRICS STRIP -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
