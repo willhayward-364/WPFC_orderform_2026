@@ -103,8 +103,9 @@ class Handler(BaseHTTPRequestHandler):
         return row["name"] if row else None
 
     def do_GET(self):
-        if self.path in ("/", "/index.html", "/IMG_4899.png"):
-            path = ROOT / ("index.html" if self.path == "/" else self.path[1:])
+        static_files = {"/": ROOT / "index.html", "/index.html": ROOT / "index.html", "/IMG_4899.png": ROOT / "IMG_4899.png"}
+        if self.path in static_files:
+            path = static_files[self.path]
             body = path.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "image/png" if path.suffix == ".png" else "text/html; charset=utf-8")
