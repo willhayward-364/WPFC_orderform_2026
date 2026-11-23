@@ -813,6 +813,7 @@
       personalisationValues: {},
       unitValidationWarnings: {},
       copiedSuccess: false,
+      submissionStatus: '',
       // Club Official Portal State
       officialUser: savedSession,
       loginForm: {
@@ -844,6 +845,7 @@
     });
 
     let toastTimer = null;
+    let submissionAttempt = 0;
 
     function escapeHtml(str) {
       return String(str)
@@ -1358,6 +1360,10 @@
         showToast('Please resolve duplicate squad numbers before continuing');
         return;
       }
+      if (step !== 4) {
+        submissionAttempt++;
+        state.submissionStatus = '';
+      }
       state.currentStep = step;
       renderAll();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1622,6 +1628,9 @@
 
     // Submit Formatted Order Attachment to Club for Checking
     function submitOrderEmail() {
+      const attempt = ++submissionAttempt;
+      state.submissionStatus = '';
+      renderMain();
       recordCurrentCoachSubmission();
       const recipient = 'whitburnpanthers@gmail.com';
       const subject = getEmailSubject();
@@ -1637,7 +1646,12 @@
             title: subject,
             text: coverNote,
             files: [orderFile]
+          }).then(() => {
+            if (attempt !== submissionAttempt || state.viewMode !== 'coach') return;
+            state.submissionStatus = 'shared';
+            renderMain();
           }).catch((err) => {
+            if (attempt !== submissionAttempt || state.viewMode !== 'coach') return;
             if (err && err.name !== 'AbortError') {
               fallbackDownloadAndMailto(htmlContent, filename, recipient, subject, coverNote);
             }
@@ -1656,7 +1670,10 @@
     function fallbackDownloadAndMailto(htmlContent, filename, recipient, subject, coverNote) {
       try {
         triggerBlobDownload(htmlContent, 'text/html;charset=utf-8;', filename);
-      } catch (e) {}
+      } catch (e) {
+        showToast('Unable to download file in this browser view.');
+        return;
+      }
 
       const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(coverNote)}`;
 
@@ -1672,7 +1689,15 @@
         window.location.href = mailtoUrl;
       }
 
+      state.submissionStatus = 'email';
+      renderMain();
       showToast(`Downloaded ${filename} & opened email!`);
+    }
+
+    function confirmOrderSent() {
+      if (state.submissionStatus !== 'email' && state.submissionStatus !== 'shared') return;
+      state.submissionStatus = 'confirmed';
+      renderMain();
     }
 
     // =========================================================================
@@ -3577,8 +3602,6 @@
         const finalizedItems = getFinalizedOrderItems();
         const totalItemsCount = getTotalItemsCount();
         const grandTotal = getGrandTotal();
-        const subjectLine = getEmailSubject();
-        const htmlFilename = getOrderFilename('html');
 
         main.innerHTML = `
           <div class="space-y-6 animate-fade-in">
@@ -3663,9 +3686,20 @@
                 <span>Submit Order File to Club for Checking</span>
               </button>
 
-              <p class="text-[11px] text-slate-400 text-center font-medium px-2 leading-relaxed">
-                Generates a formatted, printable order sheet (<strong class="text-slate-200 font-mono">${escapeHtml(htmlFilename)}</strong>) for club approval. On mobile, select your Mail app to attach automatically; on PC, attach the downloaded file to the email that opens.
-              </p>
+              ${state.submissionStatus === 'confirmed' ? `
+                <div role="status" class="bg-emerald-950 border border-emerald-700 rounded-xl p-4 text-sm text-emerald-100">
+                  Your order has been submitted to the club, who will place the order for you and keep you updated when it's ready for collection.
+                </div>
+              ` : state.submissionStatus ? `
+                <div role="status" class="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3 text-sm text-slate-200">
+                  <p>${state.submissionStatus === 'email'
+                    ? 'Attach the downloaded order file to the email and send it to the club, then confirm below.'
+                    : 'Send the order to the club using your mail app, then confirm below.'}</p>
+                  <button type="button" onclick="confirmOrderSent()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                    I have sent the email
+                  </button>
+                </div>
+              ` : ''}
 
               <!-- GENERATED ATTACHMENT & EMAIL DETAILS CARD -->
               <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
@@ -3682,21 +3716,6 @@
                     ${state.copiedSuccess ? `<span class="text-emerald-400">${ICONS.check}</span>` : `<span class="text-slate-400">${ICONS.copy}</span>`}
                     <span>${state.copiedSuccess ? 'Copied!' : 'Copy Email Body'}</span>
                   </button>
-                </div>
-
-                <div class="grid grid-cols-1 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/90">
-                  <div>
-                    <span class="text-slate-500 text-[10px] uppercase font-bold block">Send To:</span>
-                    <span class="font-mono text-white font-semibold">whitburnpanthers@gmail.com</span>
-                  </div>
-                  <div>
-                    <span class="text-slate-500 text-[10px] uppercase font-bold block">Email Subject:</span>
-                    <span class="font-mono text-red-400 font-semibold break-all">${escapeHtml(subjectLine)}</span>
-                  </div>
-                  <div>
-                    <span class="text-slate-500 text-[10px] uppercase font-bold block">Formatted Attachment File:</span>
-                    <span class="font-mono text-emerald-400 font-semibold break-all">${escapeHtml(htmlFilename)}</span>
-                  </div>
                 </div>
 
                 <!-- DIRECT FILE DOWNLOAD OPTIONS -->
