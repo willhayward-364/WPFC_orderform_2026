@@ -758,9 +758,6 @@
     // 4. APPLICATION STATE & STORAGE (Coach Wizard + Club Official Portal)
     // =========================================================================
     const STORAGE_KEY_SUBMISSIONS = 'wpfc_coach_submissions_v1';
-    const SESSION_KEY_OFFICIAL = 'wpfc_official_auth_v1';
-    const OFFICIAL_PASSCODES = ['wpfc2026', 'whitpanth!'];
-
     function detectOfficialView() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -780,22 +777,57 @@
       }
     }
 
-    function saveStoredSubmissions(list) {
-      try {
-        localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(list));
-      } catch (e) {}
-    }
+    let orderRevision = 0;
+    let saveQueue = Promise.resolve();
+    let saveGeneration = 0;
 
-    function loadOfficialSession() {
-      try {
-        const raw = sessionStorage.getItem(SESSION_KEY_OFFICIAL);
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
+    async function api(path, method = 'GET', body) {
+      const response = await fetch(path, {
+        method,
+        headers: method === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-WPFC-Request': '1' },
+        body: method === 'GET' ? undefined : JSON.stringify(body || {})
+      });
+      if (!response.ok) {
+        const error = new Error(response.status === 409
+          ? 'Orders changed on another device. Your unsaved change was not saved; review the refreshed orders.'
+          : response.status === 401 ? 'Sign in required or invalid credentials.' : 'Shared storage is unavailable or the order data is invalid.');
+        error.status = response.status;
+        throw error;
       }
+      return response.json();
     }
 
-    const savedSession = loadOfficialSession();
+    async function refreshSubmissions() {
+      const result = await api('/api/orders');
+      state.submissions = result.orders;
+      state.audit = result.audit;
+      orderRevision = result.revision;
+      renderAll();
+    }
+
+    function saveStoredSubmissions(list) {
+      const snapshot = JSON.parse(JSON.stringify(list));
+      const generation = saveGeneration;
+      saveQueue = saveQueue.then(async () => {
+        if (generation !== saveGeneration) return;
+        try {
+          const result = await api('/api/orders', 'PUT', { orders: snapshot, revision: orderRevision });
+          orderRevision = result.revision;
+        } catch (error) {
+          saveGeneration++;
+          showToast(error.message);
+          if (error.status === 401) {
+            state.officialUser = null;
+            state.submissions = [];
+            renderAll();
+          } else {
+            try { await refreshSubmissions(); } catch (_) {
+              showToast('Could not save or refresh orders. Reload and sign in again.');
+            }
+          }
+        }
+      });
+    }
 
     const state = {
       viewMode: detectOfficialView() ? 'official' : 'coach',
@@ -815,13 +847,14 @@
       copiedSuccess: false,
       submissionStatus: '',
       // Club Official Portal State
-      officialUser: savedSession,
+      officialUser: null,
       loginForm: {
-        officialName: savedSession ? savedSession.name : '',
+        officialName: '',
         passcode: '',
         error: ''
       },
-      submissions: loadStoredSubmissions(),
+      submissions: [],
+      audit: [],
       officialFilter: 'all', // 'all' | 'pending' | 'approved' | 'sent'
       officialSearchQuery: '',
       officialTeamFilter: 'all',
@@ -1559,7 +1592,6 @@
 
     // Download Excel-ready CSV file
     function downloadCSV() {
-      recordCurrentCoachSubmission();
       try {
         triggerBlobDownload(buildCSVContent(), 'text/csv;charset=utf-8;', getOrderFilename('csv'));
         showToast('Excel CSV order sheet downloaded!');
@@ -1570,7 +1602,6 @@
 
     // Download Standalone Formatted HTML Order Sheet
     function downloadFormattedOrderSheet() {
-      recordCurrentCoachSubmission();
       try {
         triggerBlobDownload(buildFormattedOrderSheetHTML(), 'text/html;charset=utf-8;', getOrderFilename('html'));
         showToast('Formatted order sheet downloaded!');
@@ -1579,59 +1610,11 @@
       }
     }
 
-    // Save coach order to local Club Official queue so officials on the same browser/device can verify immediately
-    function recordCurrentCoachSubmission() {
-      if (state.cart.length === 0) return;
-      const finalizedItems = getFinalizedOrderItems();
-      const totalItems = getTotalItemsCount();
-      const grandTotal = Number(getGrandTotal().toFixed(2));
-      const coachName = state.coachDetails.name.trim() || 'Unknown Coach';
-      const teamName = state.coachDetails.teamName.trim() || 'Unknown Team';
-
-      const fingerprint = `${teamName.toLowerCase()}|${coachName.toLowerCase()}|${totalItems}|${grandTotal.toFixed(2)}`;
-      const existingIdx = state.submissions.findIndex(s => s.fingerprint === fingerprint && s.status !== 'sent');
-
-      const submissionObj = {
-        id: existingIdx > -1 ? state.submissions[existingIdx].id : `SUB-${Date.now()}`,
-        fingerprint,
-        submittedAt: new Date().toISOString(),
-        coachName,
-        teamName,
-        totalItems,
-        grandTotal,
-        status: existingIdx > -1 ? state.submissions[existingIdx].status : 'pending', // 'pending' | 'approved' | 'sent'
-        officialNote: existingIdx > -1 ? (state.submissions[existingIdx].officialNote || '') : '',
-        items: finalizedItems.map(item => ({
-          productId: item.productId,
-          sku: item.sku,
-          name: item.name,
-          category: item.category,
-          sizeCode: item.sizeCode,
-          sizeLabel: item.sizeLabel,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: Number(item.lineTotal.toFixed(2)),
-          requiresNumber: item.requiresNumber,
-          requiresInitials: item.requiresInitials,
-          personalisations: [...item.personalisations],
-          checked: false
-        }))
-      };
-
-      if (existingIdx > -1) {
-        state.submissions[existingIdx] = submissionObj;
-      } else {
-        state.submissions.unshift(submissionObj);
-      }
-      saveStoredSubmissions(state.submissions);
-    }
-
     // Submit Formatted Order Attachment to Club for Checking
     function submitOrderEmail() {
       const attempt = ++submissionAttempt;
       state.submissionStatus = '';
       renderMain();
-      recordCurrentCoachSubmission();
       const recipient = 'whitburnpanthers@gmail.com';
       const subject = getEmailSubject();
       const coverNote = getShortEmailCoverNote();
@@ -1723,43 +1706,60 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function handleOfficialLogin(event) {
+    async function handleOfficialLogin(event) {
       if (event) event.preventDefault();
       const name = (state.loginForm.officialName || '').trim();
-      const code = (state.loginForm.passcode || '').trim().toLowerCase();
+      const code = state.loginForm.passcode || '';
 
       if (!name) {
         state.loginForm.error = 'Please enter your Club Official name.';
         renderMain();
         return;
       }
-      if (!OFFICIAL_PASSCODES.includes(code)) {
-        state.loginForm.error = 'Invalid Club Official passcode. Please check and try again.';
-        renderMain();
+      try {
+        state.officialUser = await api('/api/login', 'POST', { name, password: code });
+        await refreshSubmissions();
+        state.loginForm.error = '';
+        state.loginForm.passcode = '';
+        showToast(`Signed in as ${name}`);
+      } catch (error) {
+        state.officialUser = null;
+        state.loginForm.error = error.message;
+        renderAll();
+      }
+    }
+
+    async function handleOfficialLogout() {
+      await saveQueue;
+      try { await api('/api/logout', 'POST'); } catch (error) {
+        showToast('Could not sign out. Please try again.');
         return;
       }
-
-      const session = {
-        name,
-        loggedInAt: new Date().toISOString()
-      };
-      state.officialUser = session;
-      state.loginForm.error = '';
-      state.loginForm.passcode = '';
-      try {
-        sessionStorage.setItem(SESSION_KEY_OFFICIAL, JSON.stringify(session));
-      } catch (e) {}
-      showToast(`Signed in as ${name}`);
+      saveGeneration++;
+      state.officialUser = null;
+      state.submissions = [];
+      state.audit = [];
+      showToast('Signed out of Club Official Portal');
       renderAll();
     }
 
-    function handleOfficialLogout() {
-      state.officialUser = null;
-      try {
-        sessionStorage.removeItem(SESSION_KEY_OFFICIAL);
-      } catch (e) {}
-      showToast('Signed out of Club Official Portal');
-      renderAll();
+    async function refreshOfficialOrders() {
+      await saveQueue;
+      try { await refreshSubmissions(); } catch (error) { showToast(error.message); }
+    }
+
+    function importLocalOrders() {
+      const local = loadStoredSubmissions();
+      const existing = new Set(state.submissions.map(order => order.id));
+      const additions = local.filter(order => order && typeof order.id === 'string' &&
+        /^[A-Za-z0-9_-]{1,128}$/.test(order.id) && !existing.has(order.id));
+      if (!additions.length) {
+        showToast('No new local orders found on this browser.');
+        return;
+      }
+      saveStoredSubmissions([...state.submissions, ...additions]);
+      saveQueue.then(() => refreshOfficialOrders());
+      showToast('Importing local orders; existing shared orders are kept.');
     }
 
     function toggleOrderExpanded(orderId) {
@@ -1855,7 +1855,8 @@
         const data = JSON.parse(jsonMatch[1].trim());
         if (data && data.schema === 'WPFC_ORDER_V1' && Array.isArray(data.items)) {
           return {
-            id: data.orderId || `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            id: typeof data.orderId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(data.orderId)
+              ? data.orderId : `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             submittedAt: data.submittedAt || new Date().toISOString(),
             coachName: data.coachName || 'Imported Coach',
             teamName: data.teamName || 'Imported Team',
@@ -1969,13 +1970,11 @@
             const parsedOrder = parseImportedFileText(file.name, String(e.target.result || ''));
             if (parsedOrder) {
               const dupIdx = state.submissions.findIndex(s => s.id === parsedOrder.id);
-              if (dupIdx > -1) {
-                state.submissions[dupIdx] = parsedOrder;
-              } else {
+              if (dupIdx === -1) {
                 state.submissions.unshift(parsedOrder);
+                state.expandedOrderIds[parsedOrder.id] = true;
+                importedCount++;
               }
-              state.expandedOrderIds[parsedOrder.id] = true;
-              importedCount++;
             }
           } catch (err) {}
 
@@ -1986,7 +1985,7 @@
             if (importedCount > 0) {
               showToast(`Imported ${importedCount} coach order file${importedCount === 1 ? '' : 's'}!`);
             } else {
-              showToast('Could not find valid WPFC order data in selected file(s).');
+              showToast('No new valid WPFC orders found in selected file(s).');
             }
           }
         };
@@ -2561,18 +2560,15 @@
 
                 <div>
                   <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Club Access Passcode *
+                    Password *
                   </label>
                   <input
                     type="password"
-                    placeholder="Enter club official passcode"
+                    placeholder="Enter your password"
                     value="${escapeHtml(state.loginForm.passcode)}"
                     oninput="state.loginForm.passcode = this.value"
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium"
                   />
-                  <p class="text-[11px] text-slate-500 mt-1.5">
-                    Club official passcode: <span class="font-mono text-slate-400">WPFC2026</span>
-                  </p>
                 </div>
 
                 ${state.loginForm.error ? `
@@ -2681,6 +2677,8 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="refreshOfficialOrders()" class="bg-slate-800 text-white font-bold px-3 py-2.5 rounded-xl text-xs">Refresh shared orders</button>
+              <button type="button" onclick="importLocalOrders()" class="bg-slate-800 text-white font-bold px-3 py-2.5 rounded-xl text-xs">Import orders from this browser</button>
               <label class="cursor-pointer bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2 text-xs">
                 ${ICONS.upload}
                 <span>Import Coach Order File(s)</span>
@@ -2927,7 +2925,7 @@
                           type="text"
                           placeholder="Add club official verification note (optional)..."
                           value="${escapeHtml(order.officialNote || '')}"
-                          oninput="updateOfficialNote('${order.id}', this.value)"
+                          onchange="updateOfficialNote('${order.id}', this.value)"
                           class="flex-1 bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                         />
 
@@ -2954,6 +2952,19 @@
               `;
             }).join('')}
           </div>
+
+          <details class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm text-slate-300">
+            <summary class="cursor-pointer font-bold text-white">Order audit history (${state.audit.length})</summary>
+            <p class="text-xs text-slate-400 mt-2">Refresh shared orders to see the latest activity. Each entry retains the order as it was after the change, or before deletion.</p>
+            <div class="space-y-2 mt-3">
+              ${state.audit.map(entry => `
+                <details class="border border-slate-700 rounded p-2">
+                  <summary class="cursor-pointer">${escapeHtml(entry.at)} &bull; ${escapeHtml(entry.actor)} ${escapeHtml(entry.action)} ${escapeHtml(entry.order_id)}</summary>
+                  <pre class="whitespace-pre-wrap break-all text-xs mt-2">${escapeHtml(JSON.stringify(JSON.parse(entry.data), null, 2))}</pre>
+                </details>
+              `).join('') || '<p class="text-xs text-slate-500">No activity yet.</p>'}
+            </div>
+          </details>
 
           <!-- 2. CONSOLIDATED TOTAL SPORT ORDER BUILDER -->
           <div class="bg-slate-900 border border-red-900/60 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5">
@@ -3884,6 +3895,13 @@
 
     // Initialize Application
     renderAll();
+    api('/api/session').then(async user => {
+      state.officialUser = user;
+      try { await refreshSubmissions(); } catch (_) {
+        state.officialUser = null;
+        renderAll();
+      }
+    }).catch(() => {});
   </script>
 </body>
 </html>
