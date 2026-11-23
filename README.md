@@ -23,6 +23,8 @@ connection is needed for those assets.
 3. Review the order and share it with the club. The portal can download a
    printable HTML order sheet or an Excel-compatible CSV. If the device cannot
    share the HTML file directly, attach the downloaded file to the opened email.
+   Send the email to the club, then confirm this in the portal to see what
+   happens next. The portal cannot verify that an email was sent or received.
 4. Club officials can open the verification portal using the link on the page
    (or `#official`), import coach order HTML or CSV files, review and approve
    orders, and export or share a consolidated Total Sport order. The fallback
